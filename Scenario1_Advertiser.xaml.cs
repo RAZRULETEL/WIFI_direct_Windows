@@ -51,7 +51,7 @@ namespace SDKTemplate
             }
         }
 
-        private async void btnAddIe_Click(object sender, RoutedEventArgs e)
+        private void btnAddIe_Click(object sender, RoutedEventArgs e)
         {
             test.SendMessage(txtInformationElement.Text);
         }

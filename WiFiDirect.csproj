@@ -130,6 +130,7 @@
     <Compile Include="Advertiser.cs" />
     <Compile Include="SocketReaderWriter.cs" />
     <Compile Include="Utils.cs" />
+    <Compile Include="Watcher.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">

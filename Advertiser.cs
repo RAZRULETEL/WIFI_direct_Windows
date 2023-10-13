@@ -51,7 +51,7 @@ namespace WiFiDirectApi
         {
             publisher.Stop();
 
-            if (publisher.Status == WiFiDirectAdvertisementPublisherStatus.Stopped)
+            if (publisher.Status != WiFiDirectAdvertisementPublisherStatus.Aborted)
             {
 
                 publisher.StatusChanged -= OnStatusChanged;
