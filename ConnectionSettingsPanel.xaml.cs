@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -79,7 +79,7 @@ namespace SDKTemplate
             else
             {
                 // If specific configuration methods were not added, then we'll use these pairing kinds.
-                devicePairingKinds = DevicePairingKinds.ConfirmOnly | DevicePairingKinds.DisplayPin | DevicePairingKinds.ProvidePin;
+                devicePairingKinds = DevicePairingKinds.ConfirmOnly;// | DevicePairingKinds.DisplayPin | DevicePairingKinds.ProvidePin;
             }
 
             connectionParams.PreferredPairingProcedure = Utils.GetSelectedItemTag<WiFiDirectPairingProcedure>(cmbPreferredPairingProcedure);
@@ -99,5 +99,7 @@ namespace SDKTemplate
         {
             Utils.HandlePairing(Dispatcher, args);
         }
+
+
     }
 }

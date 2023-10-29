@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using SDKTemplate;
 using Windows.Devices.Enumeration;
 using Windows.Devices.WiFiDirect;
+using Windows.Networking.Sockets;
+using Windows.Networking;
 using Windows.UI.Core;
 
 namespace WiFiDirectApi
@@ -18,6 +20,8 @@ namespace WiFiDirectApi
 
         private ObservableCollection<DiscoveredDevice> discoveredDevices { get; } = new ObservableCollection<DiscoveredDevice>();
 
+        Advertiser advertiser = new Advertiser();
+
         public Watcher()
         {
 
@@ -27,6 +31,8 @@ namespace WiFiDirectApi
         {
             if (deviceWatcher == null)
             {
+
+                advertiser.StartAdvertisement();
 
                 discoveredDevices.Clear();
                 Debug.WriteLine("Finding Devices...", NotifyType.StatusMessage);
@@ -60,6 +66,8 @@ namespace WiFiDirectApi
 
             deviceWatcher = null;
 
+            advertiser.StopAdvertisement();
+
             Debug.WriteLine("Device watcher stopped.", NotifyType.StatusMessage);
         }
 
@@ -69,6 +77,7 @@ namespace WiFiDirectApi
         {
             await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
+                Debug.WriteLine("New device found: " + deviceInfo.Name);
                 discoveredDevices.Add(new DiscoveredDevice(deviceInfo));
             });
         }
@@ -121,6 +130,53 @@ namespace WiFiDirectApi
         public bool IsWatching()
         {
             return deviceWatcher != null;
+        }
+
+        public void SendMessage(String msg)
+        {
+            advertiser.SendMessage(msg);
+        }
+
+        public async void ConnectDevice(DiscoveredDevice discoveredDevice)
+        {
+            if (discoveredDevice == null)
+            {
+                Debug.WriteLine("No device selected, please select one.", NotifyType.ErrorMessage);
+                return;
+            }
+
+            Debug.WriteLine($"Connecting to {discoveredDevice.DeviceInfo.Name}...", NotifyType.StatusMessage);
+
+            if (!discoveredDevice.DeviceInfo.Pairing.IsPaired)
+            {
+                if (!await Advertiser.RequestPairDeviceAsync(discoveredDevice.DeviceInfo.Pairing))
+                {
+                    return;
+                }
+            }
+
+            WiFiDirectDevice wfdDevice = null;
+            try
+            {
+                // IMPORTANT: FromIdAsync needs to be called from the UI thread
+                wfdDevice = await WiFiDirectDevice.FromIdAsync(discoveredDevice.DeviceInfo.Id);
+            }
+            catch (TaskCanceledException)
+            {
+                Debug.WriteLine("FromIdAsync was canceled by user", NotifyType.ErrorMessage);
+                return;
+            }
+
+            // Register for the ConnectionStatusChanged event handler
+            wfdDevice.ConnectionStatusChanged += OnConnectionStatusChanged;
+
+            await advertiser.StartSocketListener(wfdDevice);
+            advertiser.RequestSocketTransfer(wfdDevice);
+        }
+
+        private void OnConnectionStatusChanged(WiFiDirectDevice sender, object arg)
+        {
+            Debug.WriteLine($"Connection status changed: {sender.ConnectionStatus}", NotifyType.StatusMessage);
         }
     }
 }

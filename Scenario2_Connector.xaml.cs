@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -82,87 +83,17 @@ namespace SDKTemplate
             
         }
 
-        private async void btnFromId_Click(object sender, RoutedEventArgs e)
+        private void btnFromId_Click(object sender, RoutedEventArgs e)
         {
             var discoveredDevice = (DiscoveredDevice)lvDiscoveredDevices.SelectedItem;
 
-            if (discoveredDevice == null)
-            {
-                rootPage.NotifyUser("No device selected, please select one.", NotifyType.ErrorMessage);
-                return;
-            }
-
-            rootPage.NotifyUser($"Connecting to {discoveredDevice.DeviceInfo.Name}...", NotifyType.StatusMessage);
-
-            if (!discoveredDevice.DeviceInfo.Pairing.IsPaired)
-            {
-                if (!await connectionSettingsPanel.RequestPairDeviceAsync(discoveredDevice.DeviceInfo.Pairing))
-                {
-                    return;
-                }
-            }
-
-            WiFiDirectDevice wfdDevice = null;
-            try
-            {
-                // IMPORTANT: FromIdAsync needs to be called from the UI thread
-                wfdDevice = await WiFiDirectDevice.FromIdAsync(discoveredDevice.DeviceInfo.Id);
-            }
-            catch (TaskCanceledException)
-            {
-                rootPage.NotifyUser("FromIdAsync was canceled by user", NotifyType.ErrorMessage);
-                return;
-            }
-
-            // Register for the ConnectionStatusChanged event handler
-            wfdDevice.ConnectionStatusChanged += OnConnectionStatusChanged;
-
-            IReadOnlyList<EndpointPair> endpointPairs = wfdDevice.GetConnectionEndpointPairs();
-            HostName remoteHostName = endpointPairs[0].RemoteHostName;
-
-            rootPage.NotifyUser($"Devices connected on L2 layer, connecting to IP Address: {remoteHostName} Port: {Globals.strServerPort}",
-                NotifyType.StatusMessage);
-
-            // Wait for server to start listening on a socket
-            await Task.Delay(2000);
-
-            // Connect to Advertiser on L4 layer
-            StreamSocket clientSocket = new StreamSocket();
-            try
-{
-                await clientSocket.ConnectAsync(remoteHostName, Globals.strServerPort);
-                rootPage.NotifyUser("Connected with remote side on L4 layer", NotifyType.StatusMessage);
-            }
-            catch (Exception ex)
-            {
-                rootPage.NotifyUser($"Connect operation threw an exception: {ex.Message}", NotifyType.ErrorMessage);
-                return;
-            }
-
-            SocketReaderWriter socketRW = new SocketReaderWriter(clientSocket, rootPage);
-
-            string sessionId = Path.GetRandomFileName();
-            ConnectedDevice connectedDevice = new ConnectedDevice(sessionId, wfdDevice, socketRW);
-            //ConnectedDevices.Add(connectedDevice);
-
-            // The first message sent over the socket is the name of the connection.
-            await socketRW.WriteMessageAsync(sessionId);
-
-            while (await socketRW.ReadMessageAsync() != null)
-            {
-                // Keep reading messages
-            }
+            test.ConnectDevice(discoveredDevice);
         }
 
-        private void OnConnectionStatusChanged(WiFiDirectDevice sender, object arg)
-        {
-            rootPage.NotifyUserFromBackground($"Connection status changed: {sender.ConnectionStatus}", NotifyType.StatusMessage);
-        }
 
-        private async void btnSendMessage_Click(object sender, RoutedEventArgs e)
+        private void btnSendMessage_Click(object sender, RoutedEventArgs e)
         {
-            var connectedDevice = (ConnectedDevice)lvConnectedDevices.SelectedItem;
-            await connectedDevice.SocketRW.WriteMessageAsync(txtSendMessage.Text);
+            test.SendMessage(txtSendMessage.Text);
         }
 
         private void btnClose_Click(object sender, RoutedEventArgs e)
@@ -179,7 +110,7 @@ namespace SDKTemplate
             var discoveredDevice = (DiscoveredDevice)lvDiscoveredDevices.SelectedItem;
 
             DeviceUnpairingResult result = await discoveredDevice.DeviceInfo.Pairing.UnpairAsync();
-            rootPage.NotifyUser($"Unpair result: {result.Status}", NotifyType.StatusMessage);
+            Debug.WriteLine($"Unpair result: {result.Status}", NotifyType.StatusMessage);
         }
     }
 }

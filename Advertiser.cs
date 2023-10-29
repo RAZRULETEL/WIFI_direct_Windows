@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using SDKTemplate;
@@ -13,9 +15,11 @@ namespace WiFiDirectApi
 
     public class Advertiser
     {
+
         private WiFiDirectAdvertisementPublisher publisher;
         private WiFiDirectConnectionListener listener;
-        private SocketReaderWriter socketRW;
+        private ObservableCollection<SocketReaderWriter> connectedDevices = new ObservableCollection<SocketReaderWriter>();
+        
         public Advertiser()
         {
         }
@@ -103,7 +107,8 @@ namespace WiFiDirectApi
                 // Pair device if not already paired and not using legacy settings
             if (!isPaired && !publisher.Advertisement.LegacySettings.IsEnabled)
             {
-                if (!await RequestPairDeviceAsync(connectionRequest.DeviceInformation.Pairing))
+                Debug.WriteLine(connectionRequest.DeviceInformation);
+                if (!await RequestPairDeviceAsync(connectionRequest.DeviceInformation.Pairing, false))
                 {
                     return false;
                 }
@@ -120,41 +125,34 @@ namespace WiFiDirectApi
                 Debug.WriteLine($"Exception in FromIdAsync: {ex}", NotifyType.ErrorMessage);
                 return false;
             }
-
             wfdDevice.ConnectionStatusChanged += OnConnectionStatusChanged;
 
-            var listenerSocket = new StreamSocketListener();
-
-            var EndpointPairs = wfdDevice.GetConnectionEndpointPairs();
-
-            listenerSocket.ConnectionReceived += OnSocketConnectionReceived;
-            try
+            if (!await StartSocketListener(wfdDevice))
             {
-                await listenerSocket.BindEndpointAsync(EndpointPairs[0].LocalHostName, Globals.strServerPort);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Connect operation threw an exception: {ex.Message}", NotifyType.ErrorMessage);
                 return false;
             }
+            // Windows do not have api to get know who is group owner and there is no way to guarantee group owner role
+            // So we starts server and tries to connect
+            RequestSocketTransfer(wfdDevice);
 
-            //RequestSocketTransfer(wfdDevice);
-
-            Debug.WriteLine($"Devices connected on L2, listening on IP Address: {EndpointPairs[0].LocalHostName}" +
-                                $" Port: {Globals.strServerPort}", NotifyType.StatusMessage);
             return true;
         }
 
-        public async Task<bool> RequestPairDeviceAsync(DeviceInformationPairing pairing)
+        static public async Task<bool> RequestPairDeviceAsync(DeviceInformationPairing pairing, bool isConnectRequest = true)
         {
             Debug.WriteLine("Trying pair device async");
             WiFiDirectConnectionParameters connectionParams = new WiFiDirectConnectionParameters();
+            connectionParams.GroupOwnerIntent = (short)(15 - (isConnectRequest ? 1 : 0));
+
+
             DevicePairingKinds devicePairingKinds = DevicePairingKinds.ConfirmOnly | DevicePairingKinds.ConfirmPinMatch
                 | DevicePairingKinds.DisplayPin;
+
 
             connectionParams.PreferredPairingProcedure = WiFiDirectPairingProcedure.GroupOwnerNegotiation;
             DeviceInformationCustomPairing customPairing = pairing.Custom;
             customPairing.PairingRequested += OnPairingRequested;
+
 
             DevicePairingResult result = await customPairing.PairAsync(devicePairingKinds, DevicePairingProtectionLevel.None, connectionParams);
             if (result.Status != DevicePairingResultStatus.Paired)
@@ -165,7 +163,7 @@ namespace WiFiDirectApi
             return true;
         }
 
-        private void OnPairingRequested(DeviceInformationCustomPairing sender, DevicePairingRequestedEventArgs args)
+        static private void OnPairingRequested(DeviceInformationCustomPairing sender, DevicePairingRequestedEventArgs args)
         {
             Debug.WriteLine("On pairing request " + args.PairingKind);
             Utils.HandlePairing(Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher, args);
@@ -207,18 +205,19 @@ namespace WiFiDirectApi
             var task = Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunTaskAsync(
             async () =>
             {
-                Debug.WriteLine("Connecting to remote side on L4 layer...", NotifyType.StatusMessage);
+                Debug.WriteLine("Accepting remote side on L4 layer...", NotifyType.StatusMessage);
                 StreamSocket serverSocket = args.Socket;
 
-                socketRW = new SocketReaderWriter(serverSocket, null);
+                SocketReaderWriter socketRW = new SocketReaderWriter(serverSocket, null);
 
                 await socketRW.WriteMessageAsync("Hello from Moon ");
+
+                connectedDevices.Add(socketRW);
 
                 // The first message sent is the name of the connection.
                 string message = await socketRW.ReadMessageAsync();
 
                 // Add this connection to the list of active connections.
-                //ConnectedDevices.Add(new ConnectedDevice(message ?? "(unnamed)", wfdDevice, socketRW));
                 Debug.WriteLine(message ?? "(unnamed)", NotifyType.StatusMessage);
 
                 while (message != null)
@@ -226,6 +225,8 @@ namespace WiFiDirectApi
                     message = await socketRW.ReadMessageAsync();
                     Debug.WriteLine($"{message}", NotifyType.StatusMessage);
                 }
+                connectedDevices.Remove(socketRW);
+                socketRW.Dispose();
             });
         }
 
@@ -235,7 +236,7 @@ namespace WiFiDirectApi
 
         }
 
-        private void RequestSocketTransfer(WiFiDirectDevice wfdDevice)
+        public void RequestSocketTransfer(WiFiDirectDevice wfdDevice)
         {
             var task = Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunTaskAsync(
             async () =>
@@ -243,47 +244,78 @@ namespace WiFiDirectApi
                 IReadOnlyList<EndpointPair> endpointPairs = wfdDevice.GetConnectionEndpointPairs();
                 HostName remoteHostName = endpointPairs[0].RemoteHostName;
 
-                Debug.WriteLine($"Devices connected on L2 layer, connecting to IP Address: {remoteHostName} Port: {Globals.strServerPort}",
-                    NotifyType.StatusMessage);
-
                 // Wait for server to start listening on a socket
-                await Task.Delay(2_000);
+                await Task.Delay(2_000); // Prevent situation when two Windows clients connect each other at same time
 
-                // Connect to Advertiser on L4 layer
-                StreamSocket clientSocket = new StreamSocket();
-                try
+                if (connectedDevices.Count == 0)
                 {
-                    await clientSocket.ConnectAsync(remoteHostName, Globals.strServerPort);
-                    Debug.WriteLine("Connected with remote side on L4 layer", NotifyType.StatusMessage);
+                    Debug.WriteLine($"Connecting device on L2 layer, connecting to IP Address: {remoteHostName} Port: {Globals.strServerPort}",
+                            NotifyType.StatusMessage);
+
+
+                    // Connect to Advertiser on L4 layer
+                    StreamSocket clientSocket = new StreamSocket();
+                    try
+                    {
+                        await clientSocket.ConnectAsync(remoteHostName, Globals.strServerPort);
+                        Debug.WriteLine("Connected with remote side on L4 layer", NotifyType.StatusMessage);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Connect operation threw an exception: {ex.Message}", NotifyType.ErrorMessage);
+                        return;
+                    }
+
+                    SocketReaderWriter socketRW = new SocketReaderWriter(clientSocket, null);
+
+                    await socketRW.WriteMessageAsync("Hello from Moon ");
+
+                    string message = await socketRW.ReadMessageAsync();
+
+                    Debug.WriteLine(message ?? "(unnamed)");
+
+                    while (message != null)
+                    {
+                        message = await socketRW.ReadMessageAsync();
+                        Debug.WriteLine($"{message}");
+                    }
+                    connectedDevices.Remove(socketRW);
+                    socketRW.Dispose();
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Connect operation threw an exception: {ex.Message}", NotifyType.ErrorMessage);
-                    return;
-                }
-
-                socketRW = new SocketReaderWriter(clientSocket, null);
-
-                await socketRW.WriteMessageAsync("Hello from Moon ");
-
-                string message = await socketRW.ReadMessageAsync();
-
-                Debug.WriteLine(message ?? "(unnamed)");
-
-                while (message != null)
-                {
-                    message = await socketRW.ReadMessageAsync();
-                    Debug.WriteLine($"{message}");
-                }
-
             });
+        }
+
+        public async Task<bool> StartSocketListener(WiFiDirectDevice wfdDevice)
+        {
+            var listenerSocket = new StreamSocketListener();
+
+            var EndpointPairs = wfdDevice.GetConnectionEndpointPairs();
+
+            Debug.WriteLine($"Starting socket listener on L2, listening on IP Address: {EndpointPairs[0].LocalHostName}" +
+                    $" Port: {Globals.strServerPort}", NotifyType.StatusMessage);
+
+
+            listenerSocket.ConnectionReceived += OnSocketConnectionReceived;
+            try
+            {
+                await listenerSocket.BindEndpointAsync(EndpointPairs[0].LocalHostName, Globals.strServerPort);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Connect operation threw an exception: {ex.Message}", NotifyType.ErrorMessage);
+                return false;
+            }
+            return true;
         }
 
         public async void SendMessage(String msg)
         {
-            if (socketRW != null)
+            if (connectedDevices.Count > 0)
             {
-                await socketRW.WriteMessageAsync(msg);
+                foreach (var sock in connectedDevices)
+                {
+                    await sock.WriteMessageAsync(msg);
+                }
             }
             else{
                 Debug.WriteLine("Socket is null!");
