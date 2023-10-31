@@ -42,7 +42,7 @@ namespace WiFiDirectApi
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error preparing Advertisement: {ex}", NotifyType.ErrorMessage);
+                Debug.WriteLine($"Error preparing Advertisement: {ex}" );
                 return false;
             }
 
@@ -95,7 +95,7 @@ namespace WiFiDirectApi
             bool isPaired = (connectionRequest.DeviceInformation.Pairing?.IsPaired == true) ||
                             (await IsAepPairedAsync(connectionRequest.DeviceInformation.Id));
 
-            Debug.WriteLine($"Connecting to {deviceName}...", NotifyType.StatusMessage);
+            Debug.WriteLine($"Connecting to {deviceName}..." );
 
             // Show the prompt only in case of WiFiDirect reconnection or Legacy client connection.
             if (isPaired || publisher.Advertisement.LegacySettings.IsEnabled)
@@ -122,7 +122,7 @@ namespace WiFiDirectApi
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception in FromIdAsync: {ex}", NotifyType.ErrorMessage);
+                Debug.WriteLine($"Exception in FromIdAsync: {ex}" );
                 return false;
             }
             wfdDevice.ConnectionStatusChanged += OnConnectionStatusChanged;
@@ -157,7 +157,7 @@ namespace WiFiDirectApi
             DevicePairingResult result = await customPairing.PairAsync(devicePairingKinds, DevicePairingProtectionLevel.None, connectionParams);
             if (result.Status != DevicePairingResultStatus.Paired)
             {
-                Debug.WriteLine($"PairAsync failed, Status: {result.Status}", NotifyType.ErrorMessage);
+                Debug.WriteLine($"PairAsync failed, Status: {result.Status}" );
                 return false;
             }
             return true;
@@ -181,12 +181,12 @@ namespace WiFiDirectApi
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("DeviceInformation.CreateFromIdAsync threw an exception: " + ex.Message, NotifyType.ErrorMessage);
+                Debug.WriteLine("DeviceInformation.CreateFromIdAsync threw an exception: " + ex.Message );
             }
 
             if (devInfo == null)
             {
-                Debug.WriteLine("Device Information is null", NotifyType.ErrorMessage);
+                Debug.WriteLine("Device Information is null" );
                 return false;
             }
 
@@ -205,10 +205,10 @@ namespace WiFiDirectApi
             var task = Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunTaskAsync(
             async () =>
             {
-                Debug.WriteLine("Accepting remote side on L4 layer...", NotifyType.StatusMessage);
+                Debug.WriteLine("Accepting remote side on L4 layer..." );
                 StreamSocket serverSocket = args.Socket;
 
-                SocketReaderWriter socketRW = new SocketReaderWriter(serverSocket, null);
+                SocketReaderWriter socketRW = new SocketReaderWriter(serverSocket);
 
                 await socketRW.WriteMessageAsync("Hello from Moon ");
 
@@ -218,12 +218,12 @@ namespace WiFiDirectApi
                 string message = await socketRW.ReadMessageAsync();
 
                 // Add this connection to the list of active connections.
-                Debug.WriteLine(message ?? "(unnamed)", NotifyType.StatusMessage);
+                Debug.WriteLine(message ?? "(unnamed)" );
 
                 while (message != null)
                 {
                     message = await socketRW.ReadMessageAsync();
-                    Debug.WriteLine($"{message}", NotifyType.StatusMessage);
+                    Debug.WriteLine($"{message}" );
                 }
                 connectedDevices.Remove(socketRW);
                 socketRW.Dispose();
@@ -232,7 +232,7 @@ namespace WiFiDirectApi
 
         private void OnConnectionStatusChanged(WiFiDirectDevice sender, object arg)
         {
-            Debug.WriteLine($"Connection status changed: {sender.ConnectionStatus}", NotifyType.StatusMessage);
+            Debug.WriteLine($"Connection status changed: {sender.ConnectionStatus}" );
 
         }
 
@@ -249,8 +249,7 @@ namespace WiFiDirectApi
 
                 if (connectedDevices.Count == 0)
                 {
-                    Debug.WriteLine($"Connecting device on L2 layer, connecting to IP Address: {remoteHostName} Port: {Globals.strServerPort}",
-                            NotifyType.StatusMessage);
+                    Debug.WriteLine($"Connecting device on L2 layer, connecting to IP Address: {remoteHostName} Port: {Globals.strServerPort}");
 
 
                     // Connect to Advertiser on L4 layer
@@ -258,15 +257,15 @@ namespace WiFiDirectApi
                     try
                     {
                         await clientSocket.ConnectAsync(remoteHostName, Globals.strServerPort);
-                        Debug.WriteLine("Connected with remote side on L4 layer", NotifyType.StatusMessage);
+                        Debug.WriteLine("Connected with remote side on L4 layer" );
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"Connect operation threw an exception: {ex.Message}", NotifyType.ErrorMessage);
+                        Debug.WriteLine($"Connect operation threw an exception: {ex.Message}" );
                         return;
                     }
 
-                    SocketReaderWriter socketRW = new SocketReaderWriter(clientSocket, null);
+                    SocketReaderWriter socketRW = new SocketReaderWriter(clientSocket);
 
                     await socketRW.WriteMessageAsync("Hello from Moon ");
 
@@ -292,7 +291,7 @@ namespace WiFiDirectApi
             var EndpointPairs = wfdDevice.GetConnectionEndpointPairs();
 
             Debug.WriteLine($"Starting socket listener on L2, listening on IP Address: {EndpointPairs[0].LocalHostName}" +
-                    $" Port: {Globals.strServerPort}", NotifyType.StatusMessage);
+                    $" Port: {Globals.strServerPort}" );
 
 
             listenerSocket.ConnectionReceived += OnSocketConnectionReceived;
@@ -302,7 +301,7 @@ namespace WiFiDirectApi
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Connect operation threw an exception: {ex.Message}", NotifyType.ErrorMessage);
+                Debug.WriteLine($"Connect operation threw an exception: {ex.Message}" );
                 return false;
             }
             return true;

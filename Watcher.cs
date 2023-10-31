@@ -1,15 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using SDKTemplate;
 using Windows.Devices.Enumeration;
 using Windows.Devices.WiFiDirect;
-using Windows.Networking.Sockets;
-using Windows.Networking;
 using Windows.UI.Core;
 
 namespace WiFiDirectApi
@@ -35,7 +30,7 @@ namespace WiFiDirectApi
                 advertiser.StartAdvertisement();
 
                 discoveredDevices.Clear();
-                Debug.WriteLine("Finding Devices...", NotifyType.StatusMessage);
+                Debug.WriteLine("Finding Devices..." );
 
                 String deviceSelector = WiFiDirectDevice.GetDeviceSelector(WiFiDirectDeviceSelectorType.AssociationEndpoint);
 
@@ -68,7 +63,7 @@ namespace WiFiDirectApi
 
             advertiser.StopAdvertisement();
 
-            Debug.WriteLine("Device watcher stopped.", NotifyType.StatusMessage);
+            Debug.WriteLine("Device watcher stopped." );
         }
 
 
@@ -114,12 +109,12 @@ namespace WiFiDirectApi
 
         private void OnEnumerationCompleted(DeviceWatcher deviceWatcher, object o)
         {
-            Debug.WriteLine("DeviceWatcher enumeration completed", NotifyType.StatusMessage);
+            Debug.WriteLine("DeviceWatcher enumeration completed" );
         }
 
         private void OnStopped(DeviceWatcher deviceWatcher, object o)
         {
-            Debug.WriteLine("DeviceWatcher stopped", NotifyType.StatusMessage);
+            Debug.WriteLine("DeviceWatcher stopped" );
         }
         #endregion
 
@@ -141,11 +136,11 @@ namespace WiFiDirectApi
         {
             if (discoveredDevice == null)
             {
-                Debug.WriteLine("No device selected, please select one.", NotifyType.ErrorMessage);
+                Debug.WriteLine("No device selected, please select one." );
                 return;
             }
 
-            Debug.WriteLine($"Connecting to {discoveredDevice.DeviceInfo.Name}...", NotifyType.StatusMessage);
+            Debug.WriteLine($"Connecting to {discoveredDevice.DeviceInfo.Name}..." );
 
             if (!discoveredDevice.DeviceInfo.Pairing.IsPaired)
             {
@@ -163,7 +158,7 @@ namespace WiFiDirectApi
             }
             catch (TaskCanceledException)
             {
-                Debug.WriteLine("FromIdAsync was canceled by user", NotifyType.ErrorMessage);
+                Debug.WriteLine("FromIdAsync was canceled by user" );
                 return;
             }
 
@@ -176,7 +171,7 @@ namespace WiFiDirectApi
 
         private void OnConnectionStatusChanged(WiFiDirectDevice sender, object arg)
         {
-            Debug.WriteLine($"Connection status changed: {sender.ConnectionStatus}", NotifyType.StatusMessage);
+            Debug.WriteLine($"Connection status changed: {sender.ConnectionStatus}" );
         }
     }
 }

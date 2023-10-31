@@ -28,10 +28,9 @@ namespace SDKTemplate
         DataReader _dataReader;
         DataWriter _dataWriter;
         StreamSocket _streamSocket;
-        private MainPage _rootPage;
 
 
-        public SocketReaderWriter(StreamSocket socket, MainPage mainPage)
+        public SocketReaderWriter(StreamSocket socket)
         {
             _dataReader = new DataReader(socket.InputStream);
             _dataReader.UnicodeEncoding = UnicodeEncoding.Utf8;
@@ -42,7 +41,6 @@ namespace SDKTemplate
             _dataWriter.ByteOrder = ByteOrder.LittleEndian;
 
             _streamSocket = socket;
-            _rootPage = mainPage;
         }
 
         public void Dispose()
@@ -59,15 +57,15 @@ namespace SDKTemplate
                 _dataWriter.WriteUInt32(_dataWriter.MeasureString(message));
                 _dataWriter.WriteString(message);
                 await _dataWriter.StoreAsync();
-                _rootPage?.NotifyUserFromBackground("Sent message: " + message, NotifyType.StatusMessage);
-                Debug.WriteLine("Sent message: " + message, NotifyType.StatusMessage);
+                //_rootPage?.NotifyUserFromBackground("Sent message: " + message, NotifyType.StatusMessage);
+                Debug.WriteLine("Sent message: " + message);
 
 
             }
             catch (Exception ex)
             {
-                _rootPage?.NotifyUserFromBackground("WriteMessage threw exception: " + ex.Message, NotifyType.StatusMessage);
-                Debug.WriteLine("WriteMessage threw exception: " + ex.Message, NotifyType.StatusMessage);
+                //_rootPage?.NotifyUserFromBackground("WriteMessage threw exception: " + ex.Message, NotifyType.StatusMessage);
+                Debug.WriteLine("WriteMessage threw exception: " + ex.Message);
             }
         }
 
@@ -87,8 +85,8 @@ namespace SDKTemplate
                     {
                         // Decode the string.
                         string message = _dataReader.ReadString(messageLength);
-                        _rootPage?.NotifyUserFromBackground("Got message: " + message, NotifyType.StatusMessage);
-                        Debug.WriteLine("Got message: " + message, NotifyType.StatusMessage);
+                        //_rootPage?.NotifyUserFromBackground("Got message: " + message, NotifyType.StatusMessage);
+                        Debug.WriteLine("Got message: " + message);
                         return message;
                     }
                     else
@@ -100,8 +98,8 @@ namespace SDKTemplate
             }
             catch (Exception)
             {
-                Debug.WriteLine("Socket was closed!", NotifyType.StatusMessage);
-                _rootPage?.NotifyUserFromBackground("Socket was closed!", NotifyType.StatusMessage);
+                Debug.WriteLine("Socket was closed!");
+                //_rootPage?.NotifyUserFromBackground("Socket was closed!", NotifyType.StatusMessage);
             }
             return null;
         }
