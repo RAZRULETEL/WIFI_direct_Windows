@@ -75,7 +75,7 @@ namespace WiFiDirectApi
         {
             Debug.WriteLine("Connection requested!!!");
             WiFiDirectConnectionRequest connectionRequest = connectionEventArgs.GetConnectionRequest();
-            bool success = await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunTaskAsync(
+            bool success = await System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(
                 async () =>
                 {
                     return await HandleConnectionRequestAsync(connectionRequest);
@@ -166,7 +166,7 @@ namespace WiFiDirectApi
         static private void OnPairingRequested(DeviceInformationCustomPairing sender, DevicePairingRequestedEventArgs args)
         {
             Debug.WriteLine("On pairing request " + args.PairingKind);
-            Utils.HandlePairing(Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher, args);
+            Utils.HandlePairing(System.Windows.Threading.Dispatcher.CurrentDispatcher, args);
         }
         private async Task<bool> IsAepPairedAsync(string deviceId)
         {
@@ -202,7 +202,7 @@ namespace WiFiDirectApi
 
         private void OnSocketConnectionReceived(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
         {
-            var task = Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunTaskAsync(
+            var task = System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(
             async () =>
             {
                 Debug.WriteLine("Accepting remote side on L4 layer..." );
@@ -238,7 +238,7 @@ namespace WiFiDirectApi
 
         public void RequestSocketTransfer(WiFiDirectDevice wfdDevice)
         {
-            var task = Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunTaskAsync(
+            var task = System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(
             async () =>
             {
                 IReadOnlyList<EndpointPair> endpointPairs = wfdDevice.GetConnectionEndpointPairs();
@@ -319,6 +319,32 @@ namespace WiFiDirectApi
             else{
                 Debug.WriteLine("Socket is null!");
             }
+        }
+    }
+
+    public static class Debug
+    {
+        private static string log = "";
+        public static void WriteLine(object str)
+        {
+            log += str.ToString() + "\n";
+        }
+
+        public static void Write(object str)
+        {
+            log += str.ToString();
+        }
+
+        public static void WriteLineIf(bool b, object str)
+        {
+            if (b)
+            {
+                log += str.ToString() + "\n";
+            }
+        }
+
+        public static string GetLog() {
+            return log;
         }
     }
 }

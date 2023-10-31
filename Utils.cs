@@ -1,4 +1,4 @@
-﻿//*********************************************************
+//*********************************************************
 //
 // Copyright (c) Microsoft. All rights reserved.
 // This code is licensed under the MIT License (MIT).
@@ -11,6 +11,7 @@
 
 using System;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 using Windows.Devices.Enumeration;
 using Windows.Foundation;
 using Windows.UI.Core;
@@ -76,14 +77,14 @@ namespace SDKTemplate
             });
         }
 
-        public static async void HandlePairing(CoreDispatcher dispatcher, DevicePairingRequestedEventArgs args)
+        public static async void HandlePairing(Dispatcher dispatcher, DevicePairingRequestedEventArgs args)
         {
             using (Deferral deferral = args.GetDeferral())
             {
                 switch (args.PairingKind)
                 {
                     case DevicePairingKinds.DisplayPin:
-                        await ShowPinToUserAsync(dispatcher, args.Pin);
+                        //await ShowPinToUserAsync(dispatcher, args.Pin); // TODO send pin to Kotlin ui
                         args.Accept();
                         break;
 
@@ -93,7 +94,7 @@ namespace SDKTemplate
 
                     case DevicePairingKinds.ProvidePin:
                         {
-                            string pin = await GetPinFromUserAsync(dispatcher);
+                            string pin = "123";//await GetPinFromUserAsync(dispatcher); // TODO get pin from Kotlin ui
                             if (!String.IsNullOrEmpty(pin))
                             {
                                 args.Accept(pin);
