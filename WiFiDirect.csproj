@@ -62,6 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Advertiser.cs" />
+    <Compile Include="DiscoveredDevice.cs" />
     <Compile Include="DispatcherTaskExtensions.cs" />
     <Compile Include="SocketReaderWriter.cs" />
     <Compile Include="Utils.cs" />

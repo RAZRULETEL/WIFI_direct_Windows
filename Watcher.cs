@@ -1,8 +1,11 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using SDKTemplate;
+using WiFiDirect;
 using Windows.Devices.Enumeration;
 using Windows.Devices.WiFiDirect;
 using Windows.UI.Core;
@@ -13,9 +16,9 @@ namespace WiFiDirectApi
     {
         private DeviceWatcher deviceWatcher = null;
 
-        private ObservableCollection<DiscoveredDevice> discoveredDevices { get; } = new ObservableCollection<DiscoveredDevice>();
+        private List<DiscoveredDevice> discoveredDevices { get; } = new List<DiscoveredDevice>();
 
-        Advertiser advertiser = new Advertiser();
+        public Advertiser advertiser { get; } = new Advertiser();
 
         public Watcher()
         {
@@ -49,7 +52,7 @@ namespace WiFiDirectApi
             return false;
         }
 
-        public void StopWatching()
+        public bool StopWatching()
         {
             deviceWatcher.Added -= OnDeviceAdded;
             deviceWatcher.Removed -= OnDeviceRemoved;
@@ -59,27 +62,27 @@ namespace WiFiDirectApi
 
             deviceWatcher.Stop();
 
-            deviceWatcher = null;
-
             advertiser.StopAdvertisement();
 
             Debug.WriteLine("Device watcher stopped." );
+
+            return deviceWatcher.Status == DeviceWatcherStatus.Stopped || deviceWatcher.Status == DeviceWatcherStatus.Stopping;
         }
 
 
         #region DeviceWatcherEvents
-        private async void OnDeviceAdded(DeviceWatcher deviceWatcher, DeviceInformation deviceInfo)
+        private void OnDeviceAdded(DeviceWatcher deviceWatcher, DeviceInformation deviceInfo)
         {
-            await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke (() =>
             {
                 Debug.WriteLine("New device found: " + deviceInfo.Name);
                 discoveredDevices.Add(new DiscoveredDevice(deviceInfo));
             });
         }
 
-        private async void OnDeviceRemoved(DeviceWatcher deviceWatcher, DeviceInformationUpdate deviceInfoUpdate)
+        private void OnDeviceRemoved(DeviceWatcher deviceWatcher, DeviceInformationUpdate deviceInfoUpdate)
         {
-            await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() =>
             {
                 foreach (DiscoveredDevice discoveredDevice in discoveredDevices)
                 {
@@ -92,9 +95,9 @@ namespace WiFiDirectApi
             });
         }
 
-        private async void OnDeviceUpdated(DeviceWatcher deviceWatcher, DeviceInformationUpdate deviceInfoUpdate)
+        private  void OnDeviceUpdated(DeviceWatcher deviceWatcher, DeviceInformationUpdate deviceInfoUpdate)
         {
-            await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() =>
             {
                 foreach (DiscoveredDevice discoveredDevice in discoveredDevices)
                 {
@@ -118,17 +121,21 @@ namespace WiFiDirectApi
         }
         #endregion
 
-        public ObservableCollection<DiscoveredDevice> GetDiscoveredDevices() {
-            return discoveredDevices;
+        public DiscoveredDevice[] GetDiscoveredDevices() {
+            return discoveredDevices.ToArray();
         }
 
-        public bool IsWatching()
+        public async void ConnectDevice(string deviceId)
         {
-            return deviceWatcher != null;
-        }
-
-        public async void ConnectDevice(DiscoveredDevice discoveredDevice)
-        {
+            DiscoveredDevice discoveredDevice = null;
+            foreach (var item in discoveredDevices)
+            {
+                if (item.DeviceInfo.Id == deviceId)
+                {
+                    discoveredDevice = item;
+                    break;
+                }
+            }
             if (discoveredDevice == null)
             {
                 Debug.WriteLine("No device selected, please select one." );

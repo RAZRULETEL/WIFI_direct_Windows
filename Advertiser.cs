@@ -21,7 +21,7 @@ namespace WiFiDirectApi
 
         private WiFiDirectAdvertisementPublisher publisher;
         private WiFiDirectConnectionListener listener;
-        private ObservableCollection<string> connectedDevices = new ObservableCollection<string>();
+        private List<string> connectedDevices = new List<string>();
         
         public Advertiser()
         {
@@ -321,14 +321,9 @@ namespace WiFiDirectApi
         }
 
 
-        public string GetConnectedDevices()
+        public string[] GetConnectedDevices()
         {
-            var res = "";
-            foreach(var device in connectedDevices)
-            {
-                res += device + ":";
-            }
-            return res;//res.Length > 0 ? res.Substring(0, res.Length - 1) : null;
+            return connectedDevices.ToArray();
         }
     }
 
