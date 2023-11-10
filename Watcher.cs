@@ -127,11 +127,6 @@ namespace WiFiDirectApi
             return deviceWatcher != null;
         }
 
-        public void SendMessage(String msg)
-        {
-            advertiser.SendMessage(msg);
-        }
-
         public async void ConnectDevice(DiscoveredDevice discoveredDevice)
         {
             if (discoveredDevice == null)

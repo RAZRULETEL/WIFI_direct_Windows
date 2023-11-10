@@ -3,9 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using SDKTemplate;
 using Windows.Devices.Enumeration;
+using Windows.Devices.HumanInterfaceDevice;
 using Windows.Devices.WiFiDirect;
 using Windows.Networking;
 using Windows.Networking.Sockets;
@@ -18,7 +21,7 @@ namespace WiFiDirectApi
 
         private WiFiDirectAdvertisementPublisher publisher;
         private WiFiDirectConnectionListener listener;
-        private ObservableCollection<SocketReaderWriter> connectedDevices = new ObservableCollection<SocketReaderWriter>();
+        private ObservableCollection<string> connectedDevices = new ObservableCollection<string>();
         
         public Advertiser()
         {
@@ -70,23 +73,23 @@ namespace WiFiDirectApi
         {
             Debug.WriteLine(statusEventArgs.Status);
         }
-
-        private async void OnConnectionRequested(WiFiDirectConnectionListener sender, WiFiDirectConnectionRequestedEventArgs connectionEventArgs)
+        private WiFiDirectConnectionRequest req;
+        private void OnConnectionRequested(WiFiDirectConnectionListener sender, WiFiDirectConnectionRequestedEventArgs connectionEventArgs)
         {
             Debug.WriteLine("Connection requested!!!");
             WiFiDirectConnectionRequest connectionRequest = connectionEventArgs.GetConnectionRequest();
-            bool success = await System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(
-                async () =>
-                {
-                    return await HandleConnectionRequestAsync(connectionRequest);
-                });
+            req = connectionRequest;
+            new Thread(new ThreadStart(handleReq)).Start();
+        }
 
-            if (!success)
+        private void handleReq() {
+            if (!HandleConnectionRequestAsync(req).Result)
             {
                 Debug.WriteLine("Pair request was declined !!!");
-                connectionRequest.Dispose();
-            }
+                req.Dispose();
+            }   
         }
+
 
         private async Task<bool> HandleConnectionRequestAsync(WiFiDirectConnectionRequest connectionRequest)
         {
@@ -107,13 +110,14 @@ namespace WiFiDirectApi
                 // Pair device if not already paired and not using legacy settings
             if (!isPaired && !publisher.Advertisement.LegacySettings.IsEnabled)
             {
-                Debug.WriteLine(connectionRequest.DeviceInformation);
+                Debug.WriteLine("Pairing: " + connectionRequest.DeviceInformation.Name);
                 if (!await RequestPairDeviceAsync(connectionRequest.DeviceInformation.Pairing, false))
                 {
+                    Debug.WriteLine("Pair request accept fail");
                     return false;
                 }
             }
-
+            Debug.WriteLine("Device info: " + connectionRequest.DeviceInformation.Properties.Keys.ToString());
             WiFiDirectDevice wfdDevice = null;
             try
             {
@@ -125,15 +129,19 @@ namespace WiFiDirectApi
                 Debug.WriteLine($"Exception in FromIdAsync: {ex}" );
                 return false;
             }
+           
             wfdDevice.ConnectionStatusChanged += OnConnectionStatusChanged;
-
+            IReadOnlyList<EndpointPair> endpointPairs = wfdDevice.GetConnectionEndpointPairs();
+            Debug.WriteLine($"Device saved: ${endpointPairs[0].RemoteHostName}");
+            connectedDevices.Add($"${endpointPairs[0].RemoteHostName}");
+/*
             if (!await StartSocketListener(wfdDevice))
             {
                 return false;
             }
             // Windows do not have api to get know who is group owner and there is no way to guarantee group owner role
             // So we starts server and tries to connect
-            RequestSocketTransfer(wfdDevice);
+            RequestSocketTransfer(wfdDevice);*/
 
             return true;
         }
@@ -145,8 +153,8 @@ namespace WiFiDirectApi
             connectionParams.GroupOwnerIntent = (short)(15 - (isConnectRequest ? 1 : 0));
 
 
-            DevicePairingKinds devicePairingKinds = DevicePairingKinds.ConfirmOnly | DevicePairingKinds.ConfirmPinMatch
-                | DevicePairingKinds.DisplayPin;
+            DevicePairingKinds devicePairingKinds = DevicePairingKinds.ConfirmOnly;// | DevicePairingKinds.ConfirmPinMatch
+            //    | DevicePairingKinds.DisplayPin;
 
 
             connectionParams.PreferredPairingProcedure = WiFiDirectPairingProcedure.GroupOwnerNegotiation;
@@ -155,6 +163,7 @@ namespace WiFiDirectApi
 
 
             DevicePairingResult result = await customPairing.PairAsync(devicePairingKinds, DevicePairingProtectionLevel.None, connectionParams);
+            Debug.WriteLine("Pair async exec");
             if (result.Status != DevicePairingResultStatus.Paired)
             {
                 Debug.WriteLine($"PairAsync failed, Status: {result.Status}" );
@@ -165,8 +174,10 @@ namespace WiFiDirectApi
 
         static private void OnPairingRequested(DeviceInformationCustomPairing sender, DevicePairingRequestedEventArgs args)
         {
-            Debug.WriteLine("On pairing request " + args.PairingKind);
-            Utils.HandlePairing(System.Windows.Threading.Dispatcher.CurrentDispatcher, args);
+            Debug.WriteLine("On pairing request " + args.PairingKind);// Works only with ConfirmOnly
+            args.Accept();// TODO: implement more kinds
+            //Utils.HandlePairing(System.Windows.Threading.Dispatcher.CurrentDispatcher, args);
+            
         }
         private async Task<bool> IsAepPairedAsync(string deviceId)
         {
@@ -189,15 +200,15 @@ namespace WiFiDirectApi
                 Debug.WriteLine("Device Information is null" );
                 return false;
             }
-
-            deviceSelector = $"System.Devices.Aep.DeviceAddress:=\"{devInfo.Properties["System.Devices.Aep.DeviceAddress"]}\"";
+            return false;
+            /*deviceSelector = $"System.Devices.Aep.DeviceAddress:=\"{devInfo.Properties["System.Devices.Aep.DeviceAddress"]}\"";
             DeviceInformationCollection pairedDeviceCollection = await DeviceInformation.FindAllAsync(deviceSelector, null, DeviceInformationKind.Device);
             Debug.WriteLine("Paired devices " + pairedDeviceCollection.Count + ": ");
             foreach (DeviceInformation dev in pairedDeviceCollection)
             {
                 Debug.Write(dev);
             }
-            return pairedDeviceCollection.Count > 0;
+            return pairedDeviceCollection.Count > 0;*/
         }
 
         private void OnSocketConnectionReceived(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
@@ -212,7 +223,7 @@ namespace WiFiDirectApi
 
                 await socketRW.WriteMessageAsync("Hello from Moon ");
 
-                connectedDevices.Add(socketRW);
+                //connectedDevices.Add(socketRW);
 
                 // The first message sent is the name of the connection.
                 string message = await socketRW.ReadMessageAsync();
@@ -225,14 +236,16 @@ namespace WiFiDirectApi
                     message = await socketRW.ReadMessageAsync();
                     Debug.WriteLine($"{message}" );
                 }
-                connectedDevices.Remove(socketRW);
+                //connectedDevices.Remove(socketRW);
                 socketRW.Dispose();
             });
         }
 
-        private void OnConnectionStatusChanged(WiFiDirectDevice sender, object arg)
+        private void OnConnectionStatusChanged(WiFiDirectDevice wfdDevice, object arg)
         {
-            Debug.WriteLine($"Connection status changed: {sender.ConnectionStatus}" );
+            Debug.WriteLine($"Connection status changed: {wfdDevice.ConnectionStatus}" );
+            IReadOnlyList<EndpointPair> endpointPairs = wfdDevice.GetConnectionEndpointPairs();
+            connectedDevices.Remove($"${endpointPairs[0].RemoteHostName}");
 
         }
 
@@ -278,7 +291,7 @@ namespace WiFiDirectApi
                         message = await socketRW.ReadMessageAsync();
                         Debug.WriteLine($"{message}");
                     }
-                    connectedDevices.Remove(socketRW);
+                    //connectedDevices.Remove(socketRW);
                     socketRW.Dispose();
                 }
             });
@@ -307,18 +320,15 @@ namespace WiFiDirectApi
             return true;
         }
 
-        public async void SendMessage(String msg)
+
+        public string GetConnectedDevices()
         {
-            if (connectedDevices.Count > 0)
+            var res = "";
+            foreach(var device in connectedDevices)
             {
-                foreach (var sock in connectedDevices)
-                {
-                    await sock.WriteMessageAsync(msg);
-                }
+                res += device + ":";
             }
-            else{
-                Debug.WriteLine("Socket is null!");
-            }
+            return res;//res.Length > 0 ? res.Substring(0, res.Length - 1) : null;
         }
     }
 
