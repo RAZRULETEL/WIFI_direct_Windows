@@ -14,4 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "WIFI Direct Windows"
 include ':app'
-include ':lib-test'
+include ':wifi-direct-windows'
