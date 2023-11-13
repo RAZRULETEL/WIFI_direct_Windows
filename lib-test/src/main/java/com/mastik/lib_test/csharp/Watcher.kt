@@ -67,6 +67,10 @@ class Watcher {
         instance.invokeInstanceMethod(CONNECT_DEVICE, discoveredDevice.context).execute()
     }
 
+    fun unpairDevice(discoveredDevice: DiscoveredDevice){
+        discoveredDevice.context.getInstanceField("DeviceInfo").getInstanceField("Pairing").invokeInstanceMethod("UnpairAsync").execute()
+    }
+
     fun setOnNewDiscoveredDevice(onNewDeviceListener: Consumer<DiscoveredDevice>) {
         newDiscoveredDeviceListener = onNewDeviceListener
     }

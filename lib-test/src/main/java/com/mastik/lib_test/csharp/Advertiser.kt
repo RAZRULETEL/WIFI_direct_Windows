@@ -24,7 +24,7 @@ class Advertiser internal constructor(private val instance: InvocationContext) {
 
     constructor(): this(Config.createCSObject("Advertiser"))
 
-    private var newDeviceListener: Consumer<SocketAddress>? = null
+    private var newDeviceListener: Consumer<String>? = null
     private val connectedDevices = mutableSetOf<SocketAddress>()
 
     internal var isAdvertising: Boolean = false
@@ -40,7 +40,7 @@ class Advertiser internal constructor(private val instance: InvocationContext) {
                     InetSocketAddress(host, 0).let {
                         if (!connectedDevices.contains(it)) {
                             connectedDevices.add(it)
-                            newDeviceListener?.accept(it)
+                            newDeviceListener?.accept(host)
                         }
                     }
 
@@ -63,7 +63,7 @@ class Advertiser internal constructor(private val instance: InvocationContext) {
         return res
     }
 
-    fun setOnNewPairedDevice(onNewDeviceListener: Consumer<SocketAddress>) {
+    fun setOnNewPairedDevice(onNewDeviceListener: Consumer<String>) {
         newDeviceListener = onNewDeviceListener
     }
 }
