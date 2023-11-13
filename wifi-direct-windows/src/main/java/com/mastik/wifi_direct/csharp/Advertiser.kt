@@ -1,8 +1,6 @@
-package com.mastik.lib_test.csharp
+package com.mastik.wifi_direct.csharp
 
 import com.javonet.sdk.internal.InvocationContext
-import com.mastik.lib_test.csharp.Advertiser.Companion.START_ADVERTISEMENT
-import com.mastik.lib_test.csharp.Advertiser.Companion.STOP_ADVERTISEMENT
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.util.Timer

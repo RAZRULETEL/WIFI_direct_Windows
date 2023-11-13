@@ -1,7 +1,6 @@
-package com.mastik.lib_test.csharp
+package com.mastik.wifi_direct.csharp
 
-import com.javonet.sdk.internal.InvocationContext
-import com.mastik.lib_test.csharp.Advertiser.Companion.INFO_REQUEST_PERIOD
+import com.mastik.wifi_direct.csharp.Advertiser.Companion.INFO_REQUEST_PERIOD
 import java.util.TimerTask
 import java.util.function.Consumer
 

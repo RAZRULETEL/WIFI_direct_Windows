@@ -1,4 +1,4 @@
-package com.mastik.lib_test.tasks
+package com.mastik.wifi_direct.tasks
 
 import java.io.IOException
 import java.io.InputStreamReader

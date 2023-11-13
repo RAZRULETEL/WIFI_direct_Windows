@@ -1,4 +1,4 @@
-package com.mastik.lib_test.csharp
+package com.mastik.wifi_direct.csharp
 
 import com.javonet.sdk.internal.InvocationContext
 import com.javonet.sdk.internal.RuntimeContext

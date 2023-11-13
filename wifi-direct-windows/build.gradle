@@ -1,5 +1,5 @@
 plugins {
-    id 'java-library'
+    id 'application'
     id 'org.jetbrains.kotlin.jvm' version '1.9.20-Beta'
     id 'org.openjfx.javafxplugin' version '0.1.0'
 }
@@ -11,5 +11,11 @@ java {
 
 dependencies {
     implementation group: 'com.javonet', name: 'javonet-java-sdk', version: '2.1.9'
-    implementation 'org.openjfx:javafx:22-ea+16'
 }
+
+javafx {
+    version = "21.0.1"
+    modules = [ 'javafx.controls', 'javafx.fxml' ]
+}
+
+mainClassName('com.mastik.lib_test.Main')

@@ -1,4 +1,4 @@
-package com.mastik.lib_test.csharp
+package com.mastik.wifi_direct.csharp
 
 object Logger {
     private val logger = Config.getStaticClass("Debug")
