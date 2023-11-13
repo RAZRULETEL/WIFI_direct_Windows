@@ -6,12 +6,16 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 using SDKTemplate;
+using WiFiDirect;
 using Windows.Devices.Enumeration;
 using Windows.Devices.HumanInterfaceDevice;
 using Windows.Devices.WiFiDirect;
+using Windows.Foundation;
 using Windows.Networking;
 using Windows.Networking.Sockets;
+using Windows.UI.Xaml;
 
 namespace WiFiDirectApi
 {
@@ -21,11 +25,15 @@ namespace WiFiDirectApi
 
         private WiFiDirectAdvertisementPublisher publisher;
         private WiFiDirectConnectionListener listener;
-        private List<string> connectedDevices = new List<string>();
+        internal HashSet<ConnectedDevice> connectedDevices = new HashSet<ConnectedDevice>();
+
         
         public Advertiser()
         {
+
         }
+
+
         public bool StartAdvertisement()
         {
             publisher = new WiFiDirectAdvertisementPublisher();
@@ -79,11 +87,12 @@ namespace WiFiDirectApi
             Debug.WriteLine("Connection requested!!!");
             WiFiDirectConnectionRequest connectionRequest = connectionEventArgs.GetConnectionRequest();
             req = connectionRequest;
-            new Thread(new ThreadStart(handleReq)).Start();
+            ThreadPool.QueueUserWorkItem(new WaitCallback(handleReq));
+            //new Thread(new ThreadStart(handleReq)).Start();
         }
 
-        private void handleReq() {
-            if (!HandleConnectionRequestAsync(req).Result)
+        private async void handleReq(object obj) {
+            if (!await HandleConnectionRequestAsync(req))
             {
                 Debug.WriteLine("Pair request was declined !!!");
                 req.Dispose();
@@ -105,6 +114,10 @@ namespace WiFiDirectApi
             {
                 Debug.WriteLineIf(isPaired, "Reconnect!");
                 Debug.WriteLineIf(publisher.Advertisement.LegacySettings.IsEnabled, "Legacy connection!");
+
+                // Unpair on reconnect, otherwise FromIdAsync throw exception 
+                await connectionRequest.DeviceInformation.Pairing.UnpairAsync();
+                return false;
             }
 
                 // Pair device if not already paired and not using legacy settings
@@ -119,6 +132,7 @@ namespace WiFiDirectApi
             }
             Debug.WriteLine("Device info: " + connectionRequest.DeviceInformation.Properties.Keys.ToString());
             WiFiDirectDevice wfdDevice = null;
+
             try
             {
                 // IMPORTANT: FromIdAsync needs to be called from the UI thread
@@ -126,14 +140,15 @@ namespace WiFiDirectApi
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception in FromIdAsync: {ex}" );
+                Debug.WriteLine($"Exception in FromIdAsync: {ex}");
                 return false;
             }
-           
+
             wfdDevice.ConnectionStatusChanged += OnConnectionStatusChanged;
+            connectedDevices.Add(new ConnectedDevice(wfdDevice, connectionRequest.DeviceInformation));
             IReadOnlyList<EndpointPair> endpointPairs = wfdDevice.GetConnectionEndpointPairs();
             Debug.WriteLine($"Device saved: ${endpointPairs[0].RemoteHostName}");
-            connectedDevices.Add($"${endpointPairs[0].RemoteHostName}");
+
 /*
             if (!await StartSocketListener(wfdDevice))
             {
@@ -200,15 +215,15 @@ namespace WiFiDirectApi
                 Debug.WriteLine("Device Information is null" );
                 return false;
             }
-            return false;
-            /*deviceSelector = $"System.Devices.Aep.DeviceAddress:=\"{devInfo.Properties["System.Devices.Aep.DeviceAddress"]}\"";
+            /*return false;*/
+            deviceSelector = $"System.Devices.Aep.DeviceAddress:=\"{devInfo.Properties["System.Devices.Aep.DeviceAddress"]}\"";
             DeviceInformationCollection pairedDeviceCollection = await DeviceInformation.FindAllAsync(deviceSelector, null, DeviceInformationKind.Device);
             Debug.WriteLine("Paired devices " + pairedDeviceCollection.Count + ": ");
             foreach (DeviceInformation dev in pairedDeviceCollection)
             {
                 Debug.Write(dev);
             }
-            return pairedDeviceCollection.Count > 0;*/
+            return pairedDeviceCollection.Count > 0;
         }
 
         private void OnSocketConnectionReceived(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
@@ -244,8 +259,15 @@ namespace WiFiDirectApi
         private void OnConnectionStatusChanged(WiFiDirectDevice wfdDevice, object arg)
         {
             Debug.WriteLine($"Connection status changed: {wfdDevice.ConnectionStatus}" );
-            IReadOnlyList<EndpointPair> endpointPairs = wfdDevice.GetConnectionEndpointPairs();
-            connectedDevices.Remove($"${endpointPairs[0].RemoteHostName}");
+            foreach(ConnectedDevice dev in connectedDevices)
+            {
+                if(dev.WfdDevice.DeviceId == wfdDevice.DeviceId)
+                {
+                    _ = dev.DeviceInfo.Pairing.UnpairAsync();
+                    connectedDevices.Remove(dev);
+                    break;
+                }
+            }
 
         }
 
@@ -321,9 +343,19 @@ namespace WiFiDirectApi
         }
 
 
-        public string[] GetConnectedDevices()
+        public WiFiDirectDevice[] GetConnectedDevices()
         {
-            return connectedDevices.ToArray();
+            WiFiDirectDevice[] res = new WiFiDirectDevice[connectedDevices.Count];
+            for(int i = 0; i < connectedDevices.Count; i++)
+            {
+                res[i] = connectedDevices.ElementAt<ConnectedDevice>(i).WfdDevice;
+            }
+            return res;
+        }
+
+        public static string DeviceToRemoteHost(WiFiDirectDevice wfdDevice)
+        {
+            return $"${wfdDevice.GetConnectionEndpointPairs()[0].RemoteHostName}".Replace("$", "");
         }
     }
 
