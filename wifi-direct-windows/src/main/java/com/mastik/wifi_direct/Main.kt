@@ -1,6 +1,8 @@
 package com.mastik.wifi_direct
 
+import com.mastik.wifi_direct.csharp.Config
 import com.mastik.wifi_direct.csharp.Watcher
+import com.mastik.wifi_direct.enums.ConnectionStatus
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.event.EventHandler
@@ -8,6 +10,7 @@ import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
 import javafx.stage.Stage
 import javafx.stage.WindowEvent
+import kotlin.system.exitProcess
 
 class Main: Application() {
     companion object{
@@ -15,12 +18,8 @@ class Main: Application() {
 
         @JvmStatic
         fun main(args: Array<String>) {
-            println("Start watcher: ${Watcher.startDiscovering()}")
+            Watcher.startDiscovering()
             launch(Main::class.java, *args)
-
-            while (true) {
-                Thread.sleep(3000)
-            }
         }
     }
 
@@ -35,11 +34,20 @@ class Main: Application() {
         stage.scene = scene
         stage.show()
 
-        stage.onCloseRequest = EventHandler<WindowEvent?> { Platform.exit() }
+        stage.onCloseRequest = EventHandler<WindowEvent?> {
+            Watcher.stopDiscovering()
+            Platform.exit()
+            exitProcess(0)
+        }
 
         val controller = root.getController<FXMLController>()
         Watcher.setOnNewDiscoveredDevice() {
             controller.addDevice(it)
+        }
+
+        Watcher.advertiser.setOnNewPairedDevice() {connectedDevice ->
+            controller.getDevices().find { it.device.getId() == connectedDevice.getId() }
+                ?.changeStatus(ConnectionStatus.CONNECTED)
         }
     }
 }

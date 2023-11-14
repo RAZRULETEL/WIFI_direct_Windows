@@ -45,6 +45,7 @@ object Watcher {
         val res = instance.invokeInstanceMethod(START_DISCOVERING).execute().value as Boolean
         isDiscovering = res
         advertiser.isAdvertising = res
+        println("Start watcher: ${res}")
         return res
     }
 
@@ -53,6 +54,7 @@ object Watcher {
         val res = instance.invokeInstanceMethod(STOP_DISCOVERING).execute().value as Boolean
         isDiscovering = false
         advertiser.isAdvertising = false
+        println("Stop watcher: ${res}")
         return res
     }
 
