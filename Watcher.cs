@@ -1,15 +1,8 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Threading.Tasks;
-using SDKTemplate;
-using WiFiDirect;
 using Windows.Devices.Enumeration;
-using Windows.Devices.HumanInterfaceDevice;
 using Windows.Devices.WiFiDirect;
-using Windows.UI.Core;
 
 namespace WiFiDirectApi
 {
@@ -67,48 +60,42 @@ namespace WiFiDirectApi
 
             Debug.WriteLine("Device watcher stopped." );
 
-            return deviceWatcher.Status == DeviceWatcherStatus.Stopped || deviceWatcher.Status == DeviceWatcherStatus.Stopping;
+            var status = deviceWatcher.Status;
+            deviceWatcher = null;
+
+            return status == DeviceWatcherStatus.Stopped || status == DeviceWatcherStatus.Stopping;
         }
 
 
         #region DeviceWatcherEvents
         private void OnDeviceAdded(DeviceWatcher deviceWatcher, DeviceInformation deviceInfo)
         {
-            /*System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke (() =>
-            {*/
-                Debug.WriteLine("New device found: " + deviceInfo.Name);
-                discoveredDevices.Add(new DiscoveredDevice(deviceInfo));
-            /*});*/
+            Debug.WriteLine("New device found: " + deviceInfo.Name);
+            discoveredDevices.Add(new DiscoveredDevice(deviceInfo));
         }
 
         private void OnDeviceRemoved(DeviceWatcher deviceWatcher, DeviceInformationUpdate deviceInfoUpdate)
         {
-            /*System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() =>
-            {*/
-                foreach (DiscoveredDevice discoveredDevice in discoveredDevices)
+            foreach (DiscoveredDevice discoveredDevice in discoveredDevices)
+             {
+                if (discoveredDevice.DeviceInfo.Id == deviceInfoUpdate.Id)
                 {
-                    if (discoveredDevice.DeviceInfo.Id == deviceInfoUpdate.Id)
-                    {
-                        discoveredDevices.Remove(discoveredDevice);
-                        break;
-                    }
+                    discoveredDevices.Remove(discoveredDevice);
+                    break;
                 }
-            /*});*/
+            }
         }
 
         private void OnDeviceUpdated(DeviceWatcher deviceWatcher, DeviceInformationUpdate deviceInfoUpdate)
         {
-            /*System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() =>
-            {*/
-                foreach (DiscoveredDevice discoveredDevice in discoveredDevices)
+            foreach (DiscoveredDevice discoveredDevice in discoveredDevices)
+            {
+                if (discoveredDevice.DeviceInfo.Id == deviceInfoUpdate.Id)
                 {
-                    if (discoveredDevice.DeviceInfo.Id == deviceInfoUpdate.Id)
-                    {
-                        discoveredDevice.UpdateDeviceInfo(deviceInfoUpdate);
-                        break;
-                    }
+                    discoveredDevice.UpdateDeviceInfo(deviceInfoUpdate);
+                    break;
                 }
-            /*});*/
+            }
         }
 
         private void OnEnumerationCompleted(DeviceWatcher deviceWatcher, object o)
@@ -156,12 +143,8 @@ namespace WiFiDirectApi
                 return;
             }
 
-            // Register for the ConnectionStatusChanged event handler
             wfdDevice.ConnectionStatusChanged += OnConnectionStatusChanged;
             advertiser.connectedDevices.Add(new ConnectedDevice(wfdDevice, discoveredDevice.DeviceInfo));
-
-            /*await advertiser.StartSocketListener(wfdDevice);
-            advertiser.RequestSocketTransfer(wfdDevice);*/
         }
 
         private void OnConnectionStatusChanged(WiFiDirectDevice wfdDevice, object arg)

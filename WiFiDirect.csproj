@@ -64,9 +64,6 @@
     <Compile Include="Advertiser.cs" />
     <Compile Include="ConnectedDevice.cs" />
     <Compile Include="DiscoveredDevice.cs" />
-    <Compile Include="DispatcherTaskExtensions.cs" />
-    <Compile Include="SocketReaderWriter.cs" />
-    <Compile Include="Utils.cs" />
     <Compile Include="Watcher.cs" />
     <!-- <Compile Include="Properties\AssemblyInfo.cs" /> -->
   </ItemGroup>
