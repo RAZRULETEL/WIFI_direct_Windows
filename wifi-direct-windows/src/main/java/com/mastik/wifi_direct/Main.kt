@@ -1,56 +1,29 @@
 package com.mastik.wifi_direct
 
-import com.mastik.wifi_direct.csharp.DiscoveredDevice
-import com.mastik.wifi_direct.csharp.Logger
 import com.mastik.wifi_direct.csharp.Watcher
-import com.mastik.wifi_direct.tasks.ConnectTask
-import com.mastik.wifi_direct.tasks.ServerStartTask
-import com.mastik.wifidirect.tasks.TaskExecutors.Companion.getFixedPool
 import javafx.application.Application
+import javafx.application.Platform
+import javafx.event.EventHandler
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
 import javafx.stage.Stage
+import javafx.stage.WindowEvent
 
 class Main: Application() {
     companion object{
         private const val DEFAULT_PORT = 50001
 
-
         @JvmStatic
         fun main(args: Array<String>) {
+            println("Start watcher: ${Watcher.startDiscovering()}")
             launch(Main::class.java, *args)
 
-            val watcher = Watcher()
-            println("Start advertisement: " + watcher.startDiscovering())
-            watcher.advertiser.setOnNewPairedDevice { device: String ->
-                println("New Device: $device")
-                val serverTask = ServerStartTask(Main.DEFAULT_PORT)
-                serverTask.setOnNewMessageListener { x: String? ->
-                    println(
-                        x
-                    )
-                }
-                getFixedPool().execute(serverTask)
-                val connectTask =
-                    ConnectTask(device, Main.DEFAULT_PORT, 1000)
-                connectTask.setOnNewMessageListener { x: String? ->
-                    println(
-                        x
-                    )
-                }
-                getFixedPool().execute(connectTask)
-            }
-            watcher.setOnNewDiscoveredDevice { device: DiscoveredDevice ->
-                println("Find device: " + device.getDisplayName())
-                watcher.connectDevice(device)
-            }
-            val log = Logger
-            Main
             while (true) {
                 Thread.sleep(3000)
             }
         }
     }
+
 
 
     @Throws(Exception::class)
@@ -61,5 +34,12 @@ class Main: Application() {
         stage.title = "JavaFX and Gradle"
         stage.scene = scene
         stage.show()
+
+        stage.onCloseRequest = EventHandler<WindowEvent?> { Platform.exit() }
+
+        val controller = root.getController<FXMLController>()
+        Watcher.setOnNewDiscoveredDevice() {
+            controller.addDevice(it)
+        }
     }
 }

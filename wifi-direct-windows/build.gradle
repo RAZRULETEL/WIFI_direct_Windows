@@ -18,4 +18,4 @@ javafx {
     modules = [ 'javafx.controls', 'javafx.fxml' ]
 }
 
-mainClassName('com.mastik.lib_test.Main')
+mainClassName('com.mastik.wifi_direct.Main')

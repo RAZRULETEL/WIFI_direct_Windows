@@ -4,13 +4,13 @@ import com.mastik.wifi_direct.csharp.Advertiser.Companion.INFO_REQUEST_PERIOD
 import java.util.TimerTask
 import java.util.function.Consumer
 
-class Watcher {
-    companion object {
+object Watcher {
+//    companion object {
         const val START_DISCOVERING = "StartWatching"
         const val STOP_DISCOVERING = "StopWatching"
         const val GET_DISCOVERED_DEVICES = "GetDiscoveredDevices"
         const val CONNECT_DEVICE = "ConnectDevice"
-    }
+//    }
 
     val instance = Config.createCSObject("Watcher")
     val advertiser: Advertiser
@@ -18,7 +18,7 @@ class Watcher {
     private val discoveredDevices = mutableSetOf<String>()
     private var newDiscoveredDeviceListener: Consumer<DiscoveredDevice>? = null
 
-    protected var isDiscovering: Boolean = false
+    var isDiscovering: Boolean = false
         private set
 
     init {
@@ -58,7 +58,6 @@ class Watcher {
 
     fun getDiscoveredDevices(): Any{
         return instance.invokeInstanceMethod("devices")
-//        return discoveredDevices;
     }
 
     fun connectDevice(discoveredDevice: DiscoveredDevice){
