@@ -7,20 +7,27 @@ import com.mastik.wifi_direct.csharp.Watcher
 import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
+import javafx.scene.control.Alert
 import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.MenuItem
-import javafx.scene.control.ScrollPane
-import javafx.scene.layout.HBox
+import javafx.scene.control.TextField
 import javafx.scene.layout.VBox
 import java.net.URL
 import java.util.ResourceBundle
+import java.util.function.Consumer
 
 
 class FXMLController : Initializable {
 
     @FXML
     private var log: Label? = null
+
+    @FXML
+    private var sendMessage: Button? = null
+
+    @FXML
+    private var message: TextField? = null
 
     @FXML
     private var getLog: Button? = null
@@ -63,6 +70,20 @@ class FXMLController : Initializable {
     fun getDevices(): List<DeviceComponent>{
         return devices!!.children.map{
             it as DeviceComponent
+        }
+    }
+
+    fun sendNotification(message: String){
+        Platform.runLater(){
+            val a = Alert(Alert.AlertType.INFORMATION)
+            a.contentText = message
+            a.show()
+        }
+    }
+
+    fun setOnMessageSend(onNewMessage: Consumer<String>){
+        sendMessage!!.setOnAction {
+            onNewMessage.accept(message!!.text)
         }
     }
 }

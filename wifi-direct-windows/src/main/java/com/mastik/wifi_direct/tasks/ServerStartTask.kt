@@ -1,8 +1,10 @@
 package com.mastik.wifi_direct.tasks
 
+import java.io.FileDescriptor
 import java.net.BindException
 import java.net.ServerSocket
 import java.util.function.Consumer
+import java.util.function.Supplier
 
 class ServerStartTask(
     private val defaultPort: Int,
@@ -56,5 +58,13 @@ class ServerStartTask(
 
     override fun setOnNewMessageListener(onNewMessage: Consumer<String>) {
         communicator.setOnNewMessageListener(onNewMessage)
+    }
+
+    override fun getFileSender(): Consumer<FileDescriptor> {
+        return communicator.getFileSender()
+    }
+
+    override fun setOnNewFileListener(onNewFile: Supplier<FileDescriptor>) {
+        communicator.setOnNewFileListener(onNewFile)
     }
 }

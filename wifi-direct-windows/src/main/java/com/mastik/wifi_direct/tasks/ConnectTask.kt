@@ -1,10 +1,12 @@
 package com.mastik.wifi_direct.tasks
 
+import java.io.FileDescriptor
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketTimeoutException
 import java.util.function.Consumer
+import java.util.function.Supplier
 
 class ConnectTask(
     private val host: String,
@@ -59,5 +61,13 @@ class ConnectTask(
 
     override fun setOnNewMessageListener(onNewMessage: Consumer<String>) {
         communicator.setOnNewMessageListener(onNewMessage)
+    }
+
+    override fun getFileSender(): Consumer<FileDescriptor> {
+        return communicator.getFileSender()
+    }
+
+    override fun setOnNewFileListener(onNewFile: Supplier<FileDescriptor>) {
+        communicator.setOnNewFileListener(onNewFile)
     }
 }

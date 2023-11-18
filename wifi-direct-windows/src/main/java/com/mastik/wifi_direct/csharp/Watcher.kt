@@ -32,6 +32,7 @@ object Watcher {
                     for(csDevice in devices.execute().iterator()){
                         val device = DiscoveredDevice(csDevice)
                         if(!discoveredDevices.contains(device.getId())){
+                            println("New device: ${device.getDisplayName()}")
                             discoveredDevices.add(device.getId())
                             newDiscoveredDeviceListener?.accept(device)
                         }

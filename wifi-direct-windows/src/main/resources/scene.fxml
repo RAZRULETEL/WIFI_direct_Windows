@@ -6,6 +6,7 @@
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.StackPane?>
@@ -55,12 +56,22 @@
                   </VBox>
                </content></ScrollPane>
          </right>
-         <left>
-              <Label fx:id="log" alignment="TOP_LEFT" prefHeight="374.0" prefWidth="336.0" text="Log" BorderPane.alignment="CENTER" />
-         </left>
          <center>
             <Button fx:id="getLog" mnemonicParsing="false" prefHeight="86.0" prefWidth="52.0" text="Getlog" BorderPane.alignment="CENTER" />
          </center>
+         <left>
+            <VBox prefHeight="374.0" prefWidth="327.0" BorderPane.alignment="CENTER">
+               <children>
+                  <HBox prefHeight="25.0" prefWidth="327.0">
+                     <children>
+                        <TextField fx:id="message" prefHeight="26.0" prefWidth="277.0" />
+                        <Button fx:id="sendMessage" mnemonicParsing="false" text="Send" />
+                     </children>
+                  </HBox>
+                    <Label fx:id="log" alignment="TOP_LEFT" prefHeight="374.0" prefWidth="336.0" text="Log" />
+               </children>
+            </VBox>
+         </left>
       </BorderPane>
     </children>
 </StackPane>
