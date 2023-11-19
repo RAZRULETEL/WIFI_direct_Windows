@@ -1,29 +1,22 @@
 package com.mastik.wifidirect.tasks
 
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
-class TaskExecutors private constructor(){
 
-    companion object {
-        private const val FIXED_THREADS_COUNT = 6
+object TaskExecutors {
+        private const val FIXED_THREADS_COUNT = 2
+        private const val MAX_THREADS_COUNT = 20
 
-        private val fixedPool = run {
-            val pool: ThreadPoolExecutor = Executors.newFixedThreadPool(FIXED_THREADS_COUNT) as ThreadPoolExecutor
-            pool.corePoolSize = 1
-            pool.setKeepAliveTime(100, TimeUnit.SECONDS)
-            pool
-        } // For long running tasks
-        private val cachedPool = Executors.newCachedThreadPool() // For short tasks, or network requests
-
-        fun getFixedPool(): ExecutorService {
-            return fixedPool
-        }
+        private val cachedPool = ThreadPoolExecutor(// Not real cached, but similar
+            FIXED_THREADS_COUNT, MAX_THREADS_COUNT,
+            100L, TimeUnit.SECONDS,
+            SynchronousQueue()
+        )
 
         fun getCachedPool(): ExecutorService {
             return cachedPool
         }
-    }
 }

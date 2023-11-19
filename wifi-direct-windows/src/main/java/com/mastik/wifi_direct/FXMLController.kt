@@ -4,6 +4,7 @@ import com.mastik.wifi_direct.components.DeviceComponent
 import com.mastik.wifi_direct.csharp.Config
 import com.mastik.wifi_direct.csharp.DiscoveredDevice
 import com.mastik.wifi_direct.csharp.Watcher
+import com.mastik.wifidirect.tasks.TaskExecutors
 import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
@@ -13,6 +14,11 @@ import javafx.scene.control.Label
 import javafx.scene.control.MenuItem
 import javafx.scene.control.TextField
 import javafx.scene.layout.VBox
+import javafx.stage.FileChooser
+import javafx.stage.Stage
+import java.io.FileDescriptor
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.net.URL
 import java.util.ResourceBundle
 import java.util.function.Consumer
@@ -25,6 +31,9 @@ class FXMLController : Initializable {
 
     @FXML
     private var sendMessage: Button? = null
+
+    @FXML
+    private var sendFile: Button? = null
 
     @FXML
     private var message: TextField? = null
@@ -81,9 +90,33 @@ class FXMLController : Initializable {
         }
     }
 
-    fun setOnMessageSend(onNewMessage: Consumer<String>){
+    fun setOnMessageSend(messageSender: Consumer<String>){
         sendMessage!!.setOnAction {
-            onNewMessage.accept(message!!.text)
+            messageSender.accept(message!!.text)
+        }
+    }
+
+    fun setOnFileSend(fileSender: Consumer<FileDescriptor>, stage: Stage){
+        sendFile!!.setOnAction {
+            Platform.runLater(){
+                val fileChooser = FileChooser()
+                fileChooser.title = "Open Resource File"
+
+                fileChooser.extensionFilters.addAll(
+                    FileChooser.ExtensionFilter("Text Files", "*.txt"),
+                    FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif"),
+                    FileChooser.ExtensionFilter("Audio Files", "*.wav", "*.mp3", "*.aac"),
+                    FileChooser.ExtensionFilter("All Files", "*")
+                )
+
+                val selectedFile = fileChooser.showOpenDialog(stage)
+
+                println(selectedFile)
+
+                TaskExecutors.getCachedPool().execute {
+                    fileSender.accept(FileInputStream(selectedFile).fd)
+                }
+            }
         }
     }
 }

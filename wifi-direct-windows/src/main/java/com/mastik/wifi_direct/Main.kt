@@ -10,7 +10,10 @@ import javafx.event.EventHandler
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
 import javafx.stage.DirectoryChooser
+import javafx.stage.FileChooser
 import javafx.stage.Stage
+import javafx.stage.Window
+import java.io.File
 import java.io.FileOutputStream
 import java.nio.file.Path
 import java.util.concurrent.Exchanger
@@ -56,12 +59,12 @@ class Main: Application() {
                 ?.changeStatus(ConnectionStatus.CONNECTED)
         }
 
-        initSocketCommunicators(controller)
+        initSocketCommunicators(controller, stage)
     }
 
-    private fun initSocketCommunicators(controller: FXMLController) {
+    private fun initSocketCommunicators(controller: FXMLController, stage: Stage) {
         val startServerTask = ServerStartTask(DEFAULT_PORT)
-        TaskExecutors.getFixedPool().execute(startServerTask)
+        TaskExecutors.getCachedPool().execute(startServerTask)
 
         startServerTask.setOnNewMessageListener() {
             controller.sendNotification(it)
@@ -70,20 +73,30 @@ class Main: Application() {
         controller.setOnMessageSend(startServerTask.getMessageSender())
 
         startServerTask.setOnNewFileListener() {
-            val exchanger = Exchanger<Path>()
+            val exchanger = Exchanger<File>()
 
             Platform.runLater(){
-                val directoryChooser = DirectoryChooser()
-                val selectedDirectory = directoryChooser.showDialog(null)
-                exchanger.exchange(selectedDirectory?.toPath()?.resolve("test.txt"), 100, TimeUnit.MILLISECONDS)
+                val fileChooser = FileChooser()
+                fileChooser.title = "Open Resource File"
+
+                fileChooser.extensionFilters.addAll(
+                    FileChooser.ExtensionFilter("Text Files", "*.txt"),
+                    FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif"),
+                    FileChooser.ExtensionFilter("Audio Files", "*.wav", "*.mp3", "*.aac"),
+                    FileChooser.ExtensionFilter("All Files", "*")
+                )
+
+                val selectedFile = fileChooser.showSaveDialog(stage)
+
+                exchanger.exchange(selectedFile, 100, TimeUnit.MILLISECONDS)
             }
 
             val file = exchanger.exchange(null)
 
             // server task close their file output stream that will close descriptor, so we don't need to worry about it
-            return@setOnNewFileListener FileOutputStream(file.toFile()).fd
+            return@setOnNewFileListener FileOutputStream(file).fd
         }
 
-
+        controller.setOnFileSend(startServerTask.getFileSender(), stage)
     }
 }

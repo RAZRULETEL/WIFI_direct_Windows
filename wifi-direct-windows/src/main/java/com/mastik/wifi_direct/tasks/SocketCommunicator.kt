@@ -11,6 +11,7 @@ import java.io.InputStreamReader
 import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.net.Socket
+import java.net.SocketException
 import java.nio.CharBuffer
 import java.nio.charset.Charset
 import java.util.concurrent.locks.ReentrantLock
@@ -21,6 +22,8 @@ import kotlin.math.min
 class SocketCommunicator() : Communicator {
     companion object {
         val TAG: String = SocketCommunicator::class.simpleName!!
+
+        const val DEFAULT_BUFFER_SIZE: Int = 32_768
     }
 
     private var mainOutStream: OutputStream? = null
@@ -35,7 +38,7 @@ class SocketCommunicator() : Communicator {
             val len = message.length
             try {
                 it.write(MAGIC_STRING_BYTE)
-                for (i in 0 until Int.SIZE_BYTES) it.write(len shr (i * 8))
+                for (i in 0 until Int.SIZE_BYTES) it.write(len shr (i * Byte.SIZE_BITS))
 
                 it.write(message)
                 it.flush()
@@ -55,12 +58,12 @@ class SocketCommunicator() : Communicator {
             try {
                 it.write(MAGIC_FILE_BYTE)
                 it.flush()
-                for (i in 0 until Int.SIZE_BYTES) mainOutStream!!.write(fileStream.available() shr (i * 8))
+                for (i in 0 until Int.SIZE_BYTES) mainOutStream!!.write(fileStream.available() shr (i * Byte.SIZE_BITS))
                 it.flush()
-                val arr = ByteArray(1024)
+                val arr = ByteArray(DEFAULT_BUFFER_SIZE)
                 while (fileStream.available() > 0) {
                     println("Available: ${fileStream.available()}")
-                    val toRead = min(fileStream.available(), 1024)
+                    val toRead = min(fileStream.available(), arr.size)
                     fileStream.readFully(arr, 0, toRead)
                     it.write(arr, 0, toRead)
                 }
@@ -84,14 +87,14 @@ class SocketCommunicator() : Communicator {
         val stream = InputStreamReader(socket.getInputStream())
 
         var messageBuff = CharBuffer.allocate(1024)
-        val byteArray = ByteArray(4)
+        val byteArray = ByteArray(Int.SIZE_BYTES)
 
         while (socket.isConnected) {
             rawStream.read(byteArray, 0, 1)
             val magic = byteArray[0].toInt() and 0xFF
-            rawStream.read(byteArray, 0, 4)
+            rawStream.read(byteArray, 0, Int.SIZE_BYTES)
             var dataSize = 0
-            for (i in 0 until Int.SIZE_BYTES) dataSize += (byteArray[i].toInt() and 0xFF) shl (i * 8)
+            for (i in 0 until Int.SIZE_BYTES) dataSize += (byteArray[i].toInt() and 0xFF) shl (i * Byte.SIZE_BITS)
             println("Received $dataSize bytes")
             if (magic == MAGIC_STRING_BYTE) {
                 if (messageBuff.capacity() < dataSize)
@@ -107,14 +110,15 @@ class SocketCommunicator() : Communicator {
                 try {
                     newFileListener?.get()?.let {
                         val fileStream = FileOutputStream(it)
-                        val buffer = ByteArray(32768)
+                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
                         var total: Long = 0
                         val start = System.currentTimeMillis()
                         var i = 0
                         while (dataSize > 0) {
                             val toRead = min(dataSize, buffer.size)
-                            dataSize -= rawStream.readNBytes(buffer, 0, toRead)
+                            rawStream.readNBytes(buffer, 0, toRead)// Some slower than read, but data is not damaged
+                            dataSize -= toRead
                             fileStream.write(buffer, 0, toRead)
 
                             total += toRead
@@ -139,8 +143,8 @@ class SocketCommunicator() : Communicator {
                 continue
             }
             println("Unknown magic number $magic")
+            if(magic == 0) throw SocketException("Unknown magic number")
         }
-        println("Socket closed")
     }
 
     override fun getMessageSender(): Consumer<String> {
