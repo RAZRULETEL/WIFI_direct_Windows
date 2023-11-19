@@ -9,8 +9,14 @@ import javafx.application.Platform
 import javafx.event.EventHandler
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
+import javafx.stage.DirectoryChooser
 import javafx.stage.Stage
+import java.io.FileOutputStream
+import java.nio.file.Path
+import java.util.concurrent.Exchanger
+import java.util.concurrent.TimeUnit
 import kotlin.system.exitProcess
+
 
 class Main: Application() {
     companion object{
@@ -53,7 +59,7 @@ class Main: Application() {
         initSocketCommunicators(controller)
     }
 
-    fun initSocketCommunicators(controller: FXMLController) {
+    private fun initSocketCommunicators(controller: FXMLController) {
         val startServerTask = ServerStartTask(DEFAULT_PORT)
         TaskExecutors.getFixedPool().execute(startServerTask)
 
@@ -62,5 +68,22 @@ class Main: Application() {
         }
 
         controller.setOnMessageSend(startServerTask.getMessageSender())
+
+        startServerTask.setOnNewFileListener() {
+            val exchanger = Exchanger<Path>()
+
+            Platform.runLater(){
+                val directoryChooser = DirectoryChooser()
+                val selectedDirectory = directoryChooser.showDialog(null)
+                exchanger.exchange(selectedDirectory?.toPath()?.resolve("test.txt"), 100, TimeUnit.MILLISECONDS)
+            }
+
+            val file = exchanger.exchange(null)
+
+            // server task close their file output stream that will close descriptor, so we don't need to worry about it
+            return@setOnNewFileListener FileOutputStream(file.toFile()).fd
+        }
+
+
     }
 }
