@@ -1,22 +1,24 @@
 package com.mastik.wifi_direct.csharp
 
 import com.mastik.wifi_direct.csharp.Advertiser.Companion.INFO_REQUEST_PERIOD
+import javafx.beans.value.ObservableSetValue
+import javafx.collections.FXCollections
+import javafx.collections.ObservableSet
 import java.util.TimerTask
 import java.util.function.Consumer
 
 object Watcher {
-//    companion object {
-        const val START_DISCOVERING = "StartWatching"
-        const val STOP_DISCOVERING = "StopWatching"
-        const val GET_DISCOVERED_DEVICES = "GetDiscoveredDevices"
-        const val CONNECT_DEVICE = "ConnectDevice"
+    //    companion object {
+    const val START_DISCOVERING = "StartWatching"
+    const val STOP_DISCOVERING = "StopWatching"
+    const val GET_DISCOVERED_DEVICES = "GetDiscoveredDevices"
+    const val CONNECT_DEVICE = "ConnectDevice"
 //    }
 
     val instance = Config.createCSObject("Watcher")
     val advertiser: Advertiser
 
-    private val discoveredDevices = mutableSetOf<String>()
-    private var newDiscoveredDeviceListener: Consumer<DiscoveredDevice>? = null
+    private val discoveredDevices = FXCollections.observableSet<DiscoveredDevice>()
 
     var isDiscovering: Boolean = false
         private set
@@ -26,19 +28,23 @@ object Watcher {
         advertiser = Advertiser(instance.getInstanceField("advertiser"))
         advertiser.internalTimer.scheduleAtFixedRate(object : TimerTask() {
             override fun run() {
-                val devices =
-                    instance.invokeInstanceMethod(GET_DISCOVERED_DEVICES)
-                if(devices.getSize().execute().value as Int >= 0)
-                    for(csDevice in devices.execute().iterator()){
+                val devices = instance.invokeInstanceMethod(GET_DISCOVERED_DEVICES)
+                val discoveredIds = discoveredDevices.map { e -> e.getId() }
+                val csDiscoveredIds = mutableListOf<String>()
+                for (csDevice in devices.execute().iterator()) {
+                    csDiscoveredIds.add(DiscoveredDevice.getId(csDevice))
+                    if(!discoveredIds.contains(DiscoveredDevice.getId(csDevice))) {
                         val device = DiscoveredDevice(csDevice)
-                        if(!discoveredDevices.contains(device.getId())){
-                            println("New device: ${device.getDisplayName()}")
-                            newDiscoveredDeviceListener?.let{
-                                discoveredDevices.add(device.getId())
-                                it.accept(device)
-                            }
-                        }
+                        println("New discovered device: ${device.getDisplayName()}")
+                        discoveredDevices.add(device)
                     }
+                }
+                for(deviceId in discoveredIds){
+                    if(!csDiscoveredIds.contains(deviceId)){
+                        println("Removed discovered device $deviceId")
+                        discoveredDevices.removeIf { e -> e.getId() == deviceId }
+                    }
+                }
             }
         }, 100, INFO_REQUEST_PERIOD)
     }
@@ -61,20 +67,17 @@ object Watcher {
         return res
     }
 
-    fun getDiscoveredDevices(): Any{
-        return instance.invokeInstanceMethod("devices")
-    }
-
-    fun connectDevice(discoveredDevice: DiscoveredDevice){
-        if(!isDiscovering) return
+    fun connectDevice(discoveredDevice: DiscoveredDevice) {
+        if (!isDiscovering) return
         instance.invokeInstanceMethod(CONNECT_DEVICE, discoveredDevice.context).execute()
     }
 
-    fun unpairDevice(discoveredDevice: DiscoveredDevice){
-        discoveredDevice.context.getInstanceField("DeviceInfo").getInstanceField("Pairing").invokeInstanceMethod("UnpairAsync").execute()
+    fun unpairDevice(discoveredDevice: DiscoveredDevice) {
+        discoveredDevice.context.getInstanceField("DeviceInfo").getInstanceField("Pairing")
+            .invokeInstanceMethod("UnpairAsync").execute()
     }
 
-    fun setOnNewDiscoveredDevice(onNewDeviceListener: Consumer<DiscoveredDevice>) {
-        newDiscoveredDeviceListener = onNewDeviceListener
+    fun getDiscoveredDevices(): ObservableSet<DiscoveredDevice> {
+        return discoveredDevices
     }
 }

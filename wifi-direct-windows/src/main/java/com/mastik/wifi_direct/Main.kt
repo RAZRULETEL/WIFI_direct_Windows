@@ -1,21 +1,21 @@
 package com.mastik.wifi_direct
 
+import com.mastik.wifi_direct.FXMLController.Companion.DEFAULT_FILE_FILTERS
 import com.mastik.wifi_direct.csharp.Watcher
 import com.mastik.wifi_direct.enums.ConnectionStatus
 import com.mastik.wifi_direct.tasks.ServerStartTask
-import com.mastik.wifidirect.tasks.TaskExecutors
+import com.mastik.wifi_direct.tasks.TaskExecutors
+import com.mastik.wifi_direct.transfer.FileDescriptorTransferInfo
 import javafx.application.Application
 import javafx.application.Platform
+import javafx.collections.SetChangeListener
 import javafx.event.EventHandler
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
-import javafx.stage.DirectoryChooser
 import javafx.stage.FileChooser
 import javafx.stage.Stage
-import javafx.stage.Window
 import java.io.File
 import java.io.FileOutputStream
-import java.nio.file.Path
 import java.util.concurrent.Exchanger
 import java.util.concurrent.TimeUnit
 import kotlin.system.exitProcess
@@ -50,14 +50,21 @@ class Main: Application() {
         }
 
         controller = root.getController()
-        Watcher.setOnNewDiscoveredDevice() {
-            controller.addDevice(it)
-        }
+        Watcher.getDiscoveredDevices().addListener(SetChangeListener {
+            if(it.wasAdded())
+                controller.addDevice(it.elementAdded)
+            if(it.wasRemoved())
+                controller.removeDevice(it.elementRemoved)
+        })
 
-        Watcher.advertiser.setOnNewPairedDevice() {connectedDevice ->
-            controller.getDevices().find { it.device.getId() == connectedDevice.getId() }
-                ?.changeStatus(ConnectionStatus.CONNECTED)
-        }
+        Watcher.advertiser.getConnectedDevices().addListener(SetChangeListener {
+            if(it.wasAdded())
+                controller.getDevices().find { e -> e.device.getId() == it.elementAdded.getId() }
+                    ?.changeStatus(ConnectionStatus.CONNECTED)
+            if(it.wasRemoved())
+                controller.getDevices().find { e -> e.device.getId() == it.elementAdded.getId() }
+                    ?.changeStatus(ConnectionStatus.DISCONNECTED)
+        })
 
         initSocketCommunicators(controller, stage)
     }
@@ -72,19 +79,14 @@ class Main: Application() {
 
         controller.setOnMessageSend(startServerTask.getMessageSender())
 
-        startServerTask.setOnNewFileListener() {
+        /*startServerTask.setOnNewFileListener() {
             val exchanger = Exchanger<File>()
 
             Platform.runLater(){
                 val fileChooser = FileChooser()
                 fileChooser.title = "Open Resource File"
 
-                fileChooser.extensionFilters.addAll(
-                    FileChooser.ExtensionFilter("Text Files", "*.txt"),
-                    FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif"),
-                    FileChooser.ExtensionFilter("Audio Files", "*.wav", "*.mp3", "*.aac"),
-                    FileChooser.ExtensionFilter("All Files", "*")
-                )
+                fileChooser.extensionFilters.addAll(DEFAULT_FILE_FILTERS)
 
                 val selectedFile = fileChooser.showSaveDialog(stage)
 
@@ -94,9 +96,9 @@ class Main: Application() {
             val file = exchanger.exchange(null)
 
             // server task close their file output stream that will close descriptor, so we don't need to worry about it
-            return@setOnNewFileListener FileOutputStream(file).fd
-        }
+            return@setOnNewFileListener FileDescriptorTransferInfo(FileOutputStream(file).fd)
+        }*/
 
-        controller.setOnFileSend(startServerTask.getFileSender(), stage)
+//        controller.setOnFileSend(startServerTask.getFileSender(), stage)
     }
 }

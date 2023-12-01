@@ -18,6 +18,21 @@ class ConnectedDevice(val context: InvocationContext) {
         return Companion.getId(context);
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as DiscoveredDevice
+
+        if (getId() != other.getId() || hashCode() != other.hashCode()) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return getId().hashCode() + getDisplayName().hashCode()
+    }
+
     companion object{
         fun getId(context: InvocationContext): String{
             return context.getInstanceField("DeviceInfo").getInstanceField("Id").execute().value as String

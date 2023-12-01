@@ -1,22 +1,24 @@
 package com.mastik.wifi_direct.tasks
 
+import com.mastik.wifi_direct.transfer.AbstractCommunicatorTask
+import com.mastik.wifi_direct.transfer.Communicator
+import com.mastik.wifi_direct.transfer.FileDescriptorTransferInfo
 import java.io.FileDescriptor
 import java.net.BindException
 import java.net.ServerSocket
 import java.util.function.Consumer
+import java.util.function.Function
 import java.util.function.Supplier
 
 class ServerStartTask(
     private val defaultPort: Int,
-    ) : Communicator, Runnable {
+    ) : AbstractCommunicatorTask() {
 
     companion object {
         val TAG: String = ServerStartTask::class.simpleName!!
 
         const val MAX_PORT_OFFSET = 10
     }
-
-    private var communicator: SocketCommunicator = SocketCommunicator()
 
     override fun run() {
         var server: ServerSocket? = null
@@ -44,27 +46,13 @@ class ServerStartTask(
         try {
             val client = server.accept()
 
+            println("Received client connection: $client")
+
             server.close()
 
             communicator.readLoop(client)
         } catch (e: Exception) {
             e.printStackTrace()
         }
-    }
-
-    override fun getMessageSender(): Consumer<String> {
-        return communicator.getMessageSender()
-    }
-
-    override fun setOnNewMessageListener(onNewMessage: Consumer<String>) {
-        communicator.setOnNewMessageListener(onNewMessage)
-    }
-
-    override fun getFileSender(): Consumer<FileDescriptor> {
-        return communicator.getFileSender()
-    }
-
-    override fun setOnNewFileListener(onNewFile: Supplier<FileDescriptor>) {
-        communicator.setOnNewFileListener(onNewFile)
     }
 }

@@ -4,7 +4,7 @@ import com.mastik.wifi_direct.components.DeviceComponent
 import com.mastik.wifi_direct.csharp.Config
 import com.mastik.wifi_direct.csharp.DiscoveredDevice
 import com.mastik.wifi_direct.csharp.Watcher
-import com.mastik.wifidirect.tasks.TaskExecutors
+import com.mastik.wifi_direct.tasks.TaskExecutors
 import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
@@ -18,13 +18,20 @@ import javafx.stage.FileChooser
 import javafx.stage.Stage
 import java.io.FileDescriptor
 import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.net.URL
 import java.util.ResourceBundle
 import java.util.function.Consumer
 
 
 class FXMLController : Initializable {
+    companion object{
+        val DEFAULT_FILE_FILTERS = listOf(FileChooser.ExtensionFilter("All Files", "*"),
+            FileChooser.ExtensionFilter("Documents", "*.docx", "*.odt", "*.pdf", "*.rtf", "*.txt", "*.html", "*.xml"),
+            FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif", "*.webp", "*.svg", "*.bmp"),
+            FileChooser.ExtensionFilter("Audio Files", "*.wav", "*.mp3", "*.aac"),
+            FileChooser.ExtensionFilter("Video Files", "*.mp4", "*.avi", "*.mkv", "*.mov", "*.wmv", "*.flv", "*.webm")
+        )
+    }
 
     @FXML
     private var log: Label? = null
@@ -71,8 +78,10 @@ class FXMLController : Initializable {
     }
 
     fun removeDevice(device: DiscoveredDevice){
-        devices!!.children.removeIf(){
-            it is DeviceComponent && it.device.getId() == device.getId()
+        Platform.runLater {
+            devices!!.children.removeIf() {
+                it is DeviceComponent && it.device.getId() == device.getId()
+            }
         }
     }
 
@@ -102,20 +111,16 @@ class FXMLController : Initializable {
                 val fileChooser = FileChooser()
                 fileChooser.title = "Open Resource File"
 
-                fileChooser.extensionFilters.addAll(
-                    FileChooser.ExtensionFilter("Text Files", "*.txt"),
-                    FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif"),
-                    FileChooser.ExtensionFilter("Audio Files", "*.wav", "*.mp3", "*.aac"),
-                    FileChooser.ExtensionFilter("All Files", "*")
-                )
+                fileChooser.extensionFilters.addAll(DEFAULT_FILE_FILTERS)
 
                 val selectedFile = fileChooser.showOpenDialog(stage)
 
                 println(selectedFile)
 
-                TaskExecutors.getCachedPool().execute {
-                    fileSender.accept(FileInputStream(selectedFile).fd)
-                }
+                if(selectedFile != null)
+                    TaskExecutors.getCachedPool().execute {
+                        fileSender.accept(FileInputStream(selectedFile).fd)
+                    }
             }
         }
     }

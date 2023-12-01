@@ -1,6 +1,8 @@
 package com.mastik.wifi_direct.csharp
 
 import com.javonet.sdk.internal.InvocationContext
+import javafx.collections.FXCollections
+import javafx.collections.ObservableSet
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.util.Timer
@@ -15,15 +17,14 @@ class Advertiser internal constructor(private val instance: InvocationContext) {
 
         const val DEVICE_TO_HOST = "DeviceToRemoteHost"
 
-        const val INFO_REQUEST_PERIOD: Long = 500L
+        const val INFO_REQUEST_PERIOD: Long = 300L
 
         val STATIC_TYPE = Config.getStaticClass(Advertiser::class.java.simpleName)
     }
 
     constructor(): this(Config.createCSObject("Advertiser"))
 
-    private var newDeviceListener: Consumer<ConnectedDevice>? = null
-    private val connectedDevices = mutableSetOf<ConnectedDevice>()
+    private val connectedDevices = FXCollections.observableSet<ConnectedDevice>()
 
     internal var isAdvertising: Boolean = false
 
@@ -33,21 +34,21 @@ class Advertiser internal constructor(private val instance: InvocationContext) {
         internalTimer.scheduleAtFixedRate(object : TimerTask() {
             override fun run() {
                 val devices = instance.invokeInstanceMethod(GET_CONNECTED_DEVICES)
-                for (device in devices.execute().iterator()){
-                    var isFound = false
-                    for(connectedDevice in connectedDevices){
-                        if(connectedDevice.getId() == ConnectedDevice.getId(device)){
-                            isFound = true
-                            break
-                        }
+                val discoveredIds = connectedDevices.map { e -> e.getId() }
+                val csDiscoveredIds = mutableListOf<String>()
+                for (csDevice in devices.execute().iterator()) {
+                    csDiscoveredIds.add(ConnectedDevice.getId(csDevice))
+                    if(!discoveredIds.contains(ConnectedDevice.getId(csDevice))) {
+                        val device = ConnectedDevice(csDevice)
+                        println("New connected device: ${device.getDisplayName()}")
+                        connectedDevices.add(device)
                     }
-
-                    if(!isFound) {
-                        val connectedDevice = ConnectedDevice(device)
-                        connectedDevices.add(connectedDevice)
-                        newDeviceListener?.accept(connectedDevice)
+                }
+                for(deviceId in discoveredIds){
+                    if(!csDiscoveredIds.contains(deviceId)){
+                        println("Removed connected device $deviceId")
+                        connectedDevices.removeIf { e -> e.getId() == deviceId }
                     }
-
                 }
             }
         }, 100, INFO_REQUEST_PERIOD);
@@ -67,7 +68,7 @@ class Advertiser internal constructor(private val instance: InvocationContext) {
         return res
     }
 
-    fun setOnNewPairedDevice(onNewDeviceListener: Consumer<ConnectedDevice>) {
-        newDeviceListener = onNewDeviceListener
+    fun getConnectedDevices(): ObservableSet<ConnectedDevice> {
+        return connectedDevices
     }
 }
