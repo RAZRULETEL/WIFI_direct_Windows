@@ -5,6 +5,7 @@ import com.mastik.wifi_direct.csharp.Config
 import com.mastik.wifi_direct.csharp.DiscoveredDevice
 import com.mastik.wifi_direct.csharp.Watcher
 import com.mastik.wifi_direct.tasks.TaskExecutors
+import com.mastik.wifi_direct.transfer.FileDescriptorTransferInfo
 import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
@@ -105,7 +106,7 @@ class FXMLController : Initializable {
         }
     }
 
-    fun setOnFileSend(fileSender: Consumer<FileDescriptor>, stage: Stage){
+    fun setOnFileSend(fileSender: Consumer<FileDescriptorTransferInfo>, stage: Stage){
         sendFile!!.setOnAction {
             Platform.runLater(){
                 val fileChooser = FileChooser()
@@ -119,7 +120,7 @@ class FXMLController : Initializable {
 
                 if(selectedFile != null)
                     TaskExecutors.getCachedPool().execute {
-                        fileSender.accept(FileInputStream(selectedFile).fd)
+                        fileSender.accept(FileDescriptorTransferInfo(FileInputStream(selectedFile).fd, selectedFile.name))
                     }
             }
         }

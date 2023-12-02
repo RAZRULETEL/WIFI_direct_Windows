@@ -79,12 +79,12 @@ class Main: Application() {
 
         controller.setOnMessageSend(startServerTask.getMessageSender())
 
-        /*startServerTask.setOnNewFileListener() {
+        startServerTask.setOnNewFileListener() {
             val exchanger = Exchanger<File>()
 
             Platform.runLater(){
                 val fileChooser = FileChooser()
-                fileChooser.title = "Open Resource File"
+                fileChooser.title = "Save Resource File"
 
                 fileChooser.extensionFilters.addAll(DEFAULT_FILE_FILTERS)
 
@@ -96,9 +96,9 @@ class Main: Application() {
             val file = exchanger.exchange(null)
 
             // server task close their file output stream that will close descriptor, so we don't need to worry about it
-            return@setOnNewFileListener FileDescriptorTransferInfo(FileOutputStream(file).fd)
-        }*/
+            return@setOnNewFileListener FileDescriptorTransferInfo(FileOutputStream(file).fd, file.name)
+        }
 
-//        controller.setOnFileSend(startServerTask.getFileSender(), stage)
+        controller.setOnFileSend(startServerTask.getFileSender(), stage)
     }
 }
