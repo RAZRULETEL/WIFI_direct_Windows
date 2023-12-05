@@ -27,7 +27,6 @@ class Main: Application() {
 
         @JvmStatic
         fun main(args: Array<String>) {
-            Watcher.startDiscovering()
             launch(Main::class.java, *args)
         }
     }
@@ -62,11 +61,15 @@ class Main: Application() {
                 controller.getDevices().find { e -> e.device.getId() == it.elementAdded.getId() }
                     ?.changeStatus(ConnectionStatus.CONNECTED)
             if(it.wasRemoved())
-                controller.getDevices().find { e -> e.device.getId() == it.elementAdded.getId() }
+                controller.getDevices().find { e -> e.device.getId() == it.elementRemoved.getId() }
                     ?.changeStatus(ConnectionStatus.DISCONNECTED)
         })
 
         initSocketCommunicators(controller, stage)
+
+        TaskExecutors.getCachedPool().execute {
+            Watcher.startDiscovering()
+        }
     }
 
     private fun initSocketCommunicators(controller: FXMLController, stage: Stage) {
@@ -79,12 +82,13 @@ class Main: Application() {
 
         controller.setOnMessageSend(startServerTask.getMessageSender())
 
-        startServerTask.setOnNewFileListener() {
+        startServerTask.setOnNewFileListener() {fileName ->
             val exchanger = Exchanger<File>()
 
             Platform.runLater(){
                 val fileChooser = FileChooser()
                 fileChooser.title = "Save Resource File"
+                fileChooser.initialFileName = fileName
 
                 fileChooser.extensionFilters.addAll(DEFAULT_FILE_FILTERS)
 

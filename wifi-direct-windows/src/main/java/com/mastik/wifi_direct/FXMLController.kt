@@ -69,8 +69,6 @@ class FXMLController : Initializable {
     }
 
     fun addDevice(device: DiscoveredDevice){
-        println(device.getDisplayName())
-
         val deviceComponent = DeviceComponent(device)
 
         Platform.runLater {
