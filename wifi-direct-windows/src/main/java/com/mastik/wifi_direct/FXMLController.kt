@@ -9,15 +9,17 @@ import com.mastik.wifi_direct.transfer.FileDescriptorTransferInfo
 import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
+import javafx.geometry.Insets
 import javafx.scene.control.Alert
 import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.MenuItem
+import javafx.scene.control.ProgressBar
 import javafx.scene.control.TextField
+import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.FileChooser
 import javafx.stage.Stage
-import java.io.FileDescriptor
 import java.io.FileInputStream
 import java.net.URL
 import java.util.ResourceBundle
@@ -120,6 +122,41 @@ class FXMLController : Initializable {
                     TaskExecutors.getCachedPool().execute {
                         fileSender.accept(FileDescriptorTransferInfo(FileInputStream(selectedFile).fd, selectedFile.name))
                     }
+            }
+        }
+    }
+
+    fun addFileReceiveProgressBar(descriptorInfo: FileDescriptorTransferInfo){
+        val hBox = HBox()
+
+        val nameLabel = Label(descriptorInfo.name)
+        val progressBar = ProgressBar(0.0)
+        val etaLabel = Label("ETA: 00:00")
+        val speedLabel = Label("Speed: 0 kb/s")
+
+        progressBar.padding = Insets(0.0, 5.0, 0.0, 5.0)
+        speedLabel.padding = Insets(0.0, 0.0, 0.0, 5.0)
+
+        hBox.children += nameLabel
+        hBox.children += progressBar
+        hBox.children += etaLabel
+        hBox.children += speedLabel
+
+        Platform.runLater {
+            (log!!.parent as VBox).children.add(1, hBox)
+        }
+
+        descriptorInfo.addProgressListener(){
+            Platform.runLater {
+                progressBar.progress = it.bytesProgress.toDouble() / it.bytesTotal
+                etaLabel.text = "ETA: ${(it.ETA / 60).toInt()}:${(it.ETA % 60).toInt()}"
+                speedLabel.text = "Speed: ${(it.currentSpeed / 1024).toInt()} kb/s"
+            }
+        }
+
+        descriptorInfo.onTransferEndListener = Consumer{
+            Platform.runLater{
+                (log!!.parent as VBox).children.remove(hBox)
             }
         }
     }

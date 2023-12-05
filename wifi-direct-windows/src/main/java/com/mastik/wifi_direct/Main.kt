@@ -99,8 +99,13 @@ class Main: Application() {
 
             val file = exchanger.exchange(null)
 
-            // server task close their file output stream that will close descriptor, so we don't need to worry about it
-            return@setOnNewFileListener FileDescriptorTransferInfo(FileOutputStream(file).fd, file.name)
+            file?.let {
+                val transferInfo = FileDescriptorTransferInfo(FileOutputStream(file).fd, file.name)
+                controller.addFileReceiveProgressBar(transferInfo)
+                return@setOnNewFileListener transferInfo
+            }
+
+            return@setOnNewFileListener null
         }
 
         controller.setOnFileSend(startServerTask.getFileSender(), stage)
