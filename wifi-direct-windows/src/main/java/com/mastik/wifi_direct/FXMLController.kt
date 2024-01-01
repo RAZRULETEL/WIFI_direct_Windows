@@ -132,7 +132,12 @@ class FXMLController : Initializable {
         val nameLabel = Label(descriptorInfo.name)
         val progressBar = ProgressBar(0.0)
         val etaLabel = Label("ETA: 00:00")
-        val speedLabel = Label("Speed: 0 kb/s")
+        val speedLabel = Label("Speed: 0 KB/s")
+
+        nameLabel.minWidth = 100.0
+        progressBar.minWidth = 100.0
+        etaLabel.minWidth = 50.0
+        speedLabel.minWidth = 80.0
 
         progressBar.padding = Insets(0.0, 5.0, 0.0, 5.0)
         speedLabel.padding = Insets(0.0, 0.0, 0.0, 5.0)
@@ -146,11 +151,11 @@ class FXMLController : Initializable {
             (log!!.parent as VBox).children.add(1, hBox)
         }
 
-        descriptorInfo.addProgressListener(){
+        descriptorInfo.addProgressListener{
             Platform.runLater {
                 progressBar.progress = it.bytesProgress.toDouble() / it.bytesTotal
                 etaLabel.text = "ETA: ${(it.ETA / 60).toInt()}:${(it.ETA % 60).toInt()}"
-                speedLabel.text = "Speed: ${(it.currentSpeed / 1024).toInt()} kb/s"
+                speedLabel.text = "Speed: ${(it.currentSpeed / 1024).toInt()} KB/s"
             }
         }
 

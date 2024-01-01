@@ -62,8 +62,10 @@ class ServerStartTask(
 
 
         try {
+            println("Server started on port: ${defaultPort + portOffset - 1}")
             while (!server.isClosed) {
                 val client = server.accept()
+                println("Client connected: ${client.inetAddress.hostAddress}")
                 TaskExecutors.getCachedPool().execute {
                     val newClient = SocketCommunicator()
                     newClient.setOnNewMessageListener() {

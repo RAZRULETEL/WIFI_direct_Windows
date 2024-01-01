@@ -11,7 +11,7 @@ java {
 
 dependencies {
     implementation group: 'com.javonet', name: 'javonet-java-sdk', version: '2.1.9'
-    implementation 'com.github.RAZRULETEL:WIFI_direct_transfer:c1874e3'
+    implementation 'com.github.RAZRULETEL:WIFI_direct_transfer:47b875f'
 }
 
 javafx {

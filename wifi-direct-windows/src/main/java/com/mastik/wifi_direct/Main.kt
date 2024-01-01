@@ -23,7 +23,7 @@ import kotlin.system.exitProcess
 
 class Main: Application() {
     companion object{
-        private const val DEFAULT_PORT = 50001
+        const val DEFAULT_PORT = 50001
 
         @JvmStatic
         fun main(args: Array<String>) {
