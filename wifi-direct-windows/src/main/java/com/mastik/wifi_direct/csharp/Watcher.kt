@@ -1,11 +1,9 @@
 package com.mastik.wifi_direct.csharp
 
 import com.mastik.wifi_direct.csharp.Advertiser.Companion.INFO_REQUEST_PERIOD
-import javafx.beans.value.ObservableSetValue
 import javafx.collections.FXCollections
 import javafx.collections.ObservableSet
 import java.util.TimerTask
-import java.util.function.Consumer
 
 object Watcher {
     //    companion object {
@@ -35,7 +33,7 @@ object Watcher {
                     csDiscoveredIds.add(DiscoveredDevice.getId(csDevice))
                     if(!discoveredIds.contains(DiscoveredDevice.getId(csDevice))) {
                         val device = DiscoveredDevice(csDevice)
-                        println("New discovered device: ${device.getDisplayName()}")
+                        println("New discovered device: $device")
                         discoveredDevices.add(device)
                     }
                 }

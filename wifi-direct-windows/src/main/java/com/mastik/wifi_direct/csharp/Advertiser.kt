@@ -3,11 +3,8 @@ package com.mastik.wifi_direct.csharp
 import com.javonet.sdk.internal.InvocationContext
 import javafx.collections.FXCollections
 import javafx.collections.ObservableSet
-import java.net.InetSocketAddress
-import java.net.SocketAddress
 import java.util.Timer
 import java.util.TimerTask
-import java.util.function.Consumer
 
 class Advertiser internal constructor(private val instance: InvocationContext) {
     companion object {
@@ -28,7 +25,7 @@ class Advertiser internal constructor(private val instance: InvocationContext) {
 
     internal var isAdvertising: Boolean = false
 
-    public val internalTimer = Timer()
+    internal val internalTimer = Timer()
 
     init {
         internalTimer.scheduleAtFixedRate(object : TimerTask() {
@@ -40,7 +37,7 @@ class Advertiser internal constructor(private val instance: InvocationContext) {
                     csDiscoveredIds.add(ConnectedDevice.getId(csDevice))
                     if(!discoveredIds.contains(ConnectedDevice.getId(csDevice))) {
                         val device = ConnectedDevice(csDevice)
-                        println("New connected device: ${device.getDisplayName()}")
+                        println("New connected device: $device")
                         connectedDevices.add(device)
                     }
                 }
@@ -51,7 +48,7 @@ class Advertiser internal constructor(private val instance: InvocationContext) {
                     }
                 }
             }
-        }, 100, INFO_REQUEST_PERIOD);
+        }, 100, INFO_REQUEST_PERIOD)
     }
 
     fun startAdvertisement(): Boolean {

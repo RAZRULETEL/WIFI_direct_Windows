@@ -2,13 +2,13 @@ package com.mastik.wifi_direct.csharp
 
 import com.javonet.sdk.internal.InvocationContext
 
-class DiscoveredDevice(val context: InvocationContext) {
+class DiscoveredDevice(val context: InvocationContext): PhysicalDevice {
 
-    fun getDisplayName(): String{
+    override fun getDisplayName(): String{
         return context.getInstanceField("DisplayName").execute().value as String
     }
 
-    fun getId(): String{
+    override fun getId(): String{
         return Companion.getId(context)
     }
 
@@ -25,6 +25,10 @@ class DiscoveredDevice(val context: InvocationContext) {
 
     override fun hashCode(): Int {
         return getId().hashCode() + getDisplayName().hashCode()
+    }
+
+    override fun toString(): String {
+        return "DiscoveredDevice(name=${getDisplayName()}, id=${getId()})"
     }
 
     companion object{
