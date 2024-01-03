@@ -3,15 +3,14 @@ package com.mastik.wifi_direct.csharp
 import com.mastik.wifi_direct.csharp.Advertiser.Companion.INFO_REQUEST_PERIOD
 import javafx.collections.FXCollections
 import javafx.collections.ObservableSet
+import trikita.log.Log
 import java.util.TimerTask
 
 object Watcher {
-    //    companion object {
     const val START_DISCOVERING = "StartWatching"
     const val STOP_DISCOVERING = "StopWatching"
     const val GET_DISCOVERED_DEVICES = "GetDiscoveredDevices"
     const val CONNECT_DEVICE = "ConnectDevice"
-//    }
 
     val instance = Config.createCSObject("Watcher")
     val advertiser: Advertiser
@@ -33,13 +32,13 @@ object Watcher {
                     csDiscoveredIds.add(DiscoveredDevice.getId(csDevice))
                     if(!discoveredIds.contains(DiscoveredDevice.getId(csDevice))) {
                         val device = DiscoveredDevice(csDevice)
-                        println("New discovered device: $device")
+                        Log.d("New discovered device: $device")
                         discoveredDevices.add(device)
                     }
                 }
                 for(deviceId in discoveredIds){
                     if(!csDiscoveredIds.contains(deviceId)){
-                        println("Removed discovered device $deviceId")
+                        Log.d("Removed discovered device $deviceId")
                         discoveredDevices.removeIf { e -> e.getId() == deviceId }
                     }
                 }
@@ -52,7 +51,7 @@ object Watcher {
         val res = instance.invokeInstanceMethod(START_DISCOVERING).execute().value as Boolean
         isDiscovering = res
         advertiser.isAdvertising = res
-        println("Start watcher: ${res}")
+        Log.i("Start watcher: $res")
         return res
     }
 
@@ -61,7 +60,7 @@ object Watcher {
         val res = instance.invokeInstanceMethod(STOP_DISCOVERING).execute().value as Boolean
         isDiscovering = false
         advertiser.isAdvertising = false
-        println("Stop watcher: ${res}")
+        Log.i("Stop watcher: $res")
         return res
     }
 

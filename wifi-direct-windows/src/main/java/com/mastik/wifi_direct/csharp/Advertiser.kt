@@ -3,6 +3,7 @@ package com.mastik.wifi_direct.csharp
 import com.javonet.sdk.internal.InvocationContext
 import javafx.collections.FXCollections
 import javafx.collections.ObservableSet
+import trikita.log.Log
 import java.util.Timer
 import java.util.TimerTask
 
@@ -37,13 +38,13 @@ class Advertiser internal constructor(private val instance: InvocationContext) {
                     csDiscoveredIds.add(ConnectedDevice.getId(csDevice))
                     if(!discoveredIds.contains(ConnectedDevice.getId(csDevice))) {
                         val device = ConnectedDevice(csDevice)
-                        println("New connected device: $device")
+                        Log.d("New connected device: $device")
                         connectedDevices.add(device)
                     }
                 }
                 for(deviceId in discoveredIds){
                     if(!csDiscoveredIds.contains(deviceId)){
-                        println("Removed connected device $deviceId")
+                        Log.d("Removed connected device $deviceId")
                         connectedDevices.removeIf { e -> e.getId() == deviceId }
                     }
                 }

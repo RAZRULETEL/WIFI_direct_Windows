@@ -20,6 +20,7 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.FileChooser
 import javafx.stage.Stage
+import trikita.log.Log
 import java.io.FileInputStream
 import java.net.URL
 import java.util.ResourceBundle
@@ -116,7 +117,7 @@ class FXMLController : Initializable {
 
                 val selectedFile = fileChooser.showOpenDialog(stage)
 
-                println(selectedFile)
+                Log.d("Sending file: $selectedFile")
 
                 if(selectedFile != null)
                     TaskExecutors.getCachedPool().execute {
