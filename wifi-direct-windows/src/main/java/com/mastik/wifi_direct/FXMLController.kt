@@ -160,7 +160,7 @@ class FXMLController : Initializable {
             }
         }
 
-        descriptorInfo.onTransferEndListener = Consumer{
+        descriptorInfo.addTransferEndListener {
             Platform.runLater{
                 (log!!.parent as VBox).children.remove(hBox)
             }

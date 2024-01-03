@@ -13,7 +13,7 @@ dependencies {
     implementation 'co.trikita:log:1.1.5'
 
     implementation group: 'com.javonet', name: 'javonet-java-sdk', version: '2.1.9'
-    implementation 'com.github.RAZRULETEL:WIFI_direct_transfer:d90d24a'
+    implementation 'com.github.RAZRULETEL:WIFI_direct_transfer:222622e'
 }
 
 javafx {

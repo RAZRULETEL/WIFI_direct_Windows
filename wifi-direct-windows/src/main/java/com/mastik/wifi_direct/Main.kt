@@ -3,7 +3,7 @@ package com.mastik.wifi_direct
 import com.mastik.wifi_direct.FXMLController.Companion.DEFAULT_FILE_FILTERS
 import com.mastik.wifi_direct.csharp.Watcher
 import com.mastik.wifi_direct.enums.ConnectionStatus
-import com.mastik.wifi_direct.tasks.ServerStartTask
+import com.mastik.wifi_direct.tasks.SocketConnectionManager
 import com.mastik.wifi_direct.tasks.TaskExecutors
 import com.mastik.wifi_direct.transfer.FileDescriptorTransferInfo
 import javafx.application.Application
@@ -57,12 +57,16 @@ class Main: Application() {
         })
 
         Watcher.advertiser.getConnectedDevices().addListener(SetChangeListener {
-            if(it.wasAdded())
-                controller.getDevices().find { e -> e.device.getId() == it.elementAdded.getId() }
+            if(it.wasAdded()) {
+                controller.getDevices().find { e -> it.elementAdded.physicalEquals(e.device) }
                     ?.changeStatus(ConnectionStatus.CONNECTED)
-            if(it.wasRemoved())
-                controller.getDevices().find { e -> e.device.getId() == it.elementRemoved.getId() }
+                SocketConnectionManager.addDevice(it.elementAdded)
+            }
+            if(it.wasRemoved()) {
+                controller.getDevices().find { e -> it.elementRemoved.physicalEquals(e.device) }
                     ?.changeStatus(ConnectionStatus.DISCONNECTED)
+                SocketConnectionManager.removeDevice(it.elementRemoved)
+            }
         })
 
         initSocketCommunicators(controller, stage)
@@ -73,16 +77,13 @@ class Main: Application() {
     }
 
     private fun initSocketCommunicators(controller: FXMLController, stage: Stage) {
-        val startServerTask = ServerStartTask(DEFAULT_PORT)
-        TaskExecutors.getCachedPool().execute(startServerTask)
-
-        startServerTask.setOnNewMessageListener() {
+        SocketConnectionManager.setOnNewMessageListener() {
             controller.sendNotification(it)
         }
 
-        controller.setOnMessageSend(startServerTask.getMessageSender())
+        controller.setOnMessageSend(SocketConnectionManager.getMessageSender())
 
-        startServerTask.setOnNewFileListener() {fileName ->
+        SocketConnectionManager.setOnNewFileListener() {fileName ->
             val exchanger = Exchanger<File>()
 
             Platform.runLater(){
@@ -108,6 +109,6 @@ class Main: Application() {
             return@setOnNewFileListener null
         }
 
-        controller.setOnFileSend(startServerTask.getFileSender(), stage)
+        controller.setOnFileSend(SocketConnectionManager.getFileSender(), stage)
     }
 }
