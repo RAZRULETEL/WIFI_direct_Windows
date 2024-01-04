@@ -12,8 +12,10 @@ import javafx.collections.SetChangeListener
 import javafx.event.EventHandler
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
+import javafx.scene.text.Font
 import javafx.stage.FileChooser
 import javafx.stage.Stage
+import trikita.log.Log
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.Exchanger
@@ -27,6 +29,13 @@ class Main: Application() {
 
         @JvmStatic
         fun main(args: Array<String>) {
+            Runtime.getRuntime()
+                .addShutdownHook(Thread({
+                    Log.i("Shutting down...")
+                    Watcher.stopDiscovering()
+                    Watcher.advertiser.stopAdvertisement()
+                }, "Shutdown-thread"))
+
             launch(Main::class.java, *args)
         }
     }
@@ -43,7 +52,6 @@ class Main: Application() {
         stage.show()
 
         stage.onCloseRequest = EventHandler {
-            Watcher.stopDiscovering()
             Platform.exit()
             exitProcess(0)
         }
