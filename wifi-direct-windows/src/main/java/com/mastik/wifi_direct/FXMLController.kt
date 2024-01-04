@@ -3,10 +3,13 @@ package com.mastik.wifi_direct
 import com.mastik.wifi_direct.components.DeviceComponent
 import com.mastik.wifi_direct.csharp.Config
 import com.mastik.wifi_direct.csharp.DiscoveredDevice
+import com.mastik.wifi_direct.csharp.PhysicalDevice
 import com.mastik.wifi_direct.csharp.Watcher
 import com.mastik.wifi_direct.tasks.TaskExecutors
 import com.mastik.wifi_direct.transfer.FileDescriptorTransferInfo
 import javafx.application.Platform
+import javafx.event.ActionEvent
+import javafx.event.EventHandler
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
 import javafx.geometry.Insets
@@ -44,9 +47,6 @@ class FXMLController : Initializable {
     private var sendMessage: Button? = null
 
     @FXML
-    private var sendFile: Button? = null
-
-    @FXML
     private var message: TextField? = null
 
     @FXML
@@ -57,6 +57,12 @@ class FXMLController : Initializable {
 
     @FXML
     private var restartWatcher: MenuItem? = null
+
+    private lateinit var stage: Stage
+
+    fun setStage(stage: Stage) {
+        this.stage = stage
+    }
 
     override fun initialize(url: URL, rb: ResourceBundle?) {
         getLog!!.setOnAction {
@@ -71,12 +77,18 @@ class FXMLController : Initializable {
         }
     }
 
-    fun addDevice(device: DiscoveredDevice){
-        val deviceComponent = DeviceComponent(device)
+    fun addDevice(device: PhysicalDevice): DeviceComponent{
+        val deviceComponent = DeviceComponent(device, this)
 
         Platform.runLater {
             devices!!.children.add(deviceComponent)
         }
+
+        return deviceComponent
+    }
+
+    fun addOrUpdateDevice(device: PhysicalDevice): DeviceComponent{
+        return getDevices().find { e -> device.physicalEquals(e.device) }?.also { it.updateDevice(device) } ?: addDevice(device)
     }
 
     fun removeDevice(device: DiscoveredDevice){
@@ -107,8 +119,8 @@ class FXMLController : Initializable {
         }
     }
 
-    fun setOnFileSend(fileSender: Consumer<FileDescriptorTransferInfo>, stage: Stage){
-        sendFile!!.setOnAction {
+    fun setOnFileSend(fileSender: Consumer<FileDescriptorTransferInfo>): EventHandler<ActionEvent> {
+        return EventHandler<ActionEvent> {
             Platform.runLater(){
                 val fileChooser = FileChooser()
                 fileChooser.title = "Open Resource File"

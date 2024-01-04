@@ -49,22 +49,21 @@ class Main: Application() {
         }
 
         controller = root.getController()
+        controller.setStage(stage)
         Watcher.getDiscoveredDevices().addListener(SetChangeListener {
             if(it.wasAdded())
-                controller.addDevice(it.elementAdded)
+                controller.addOrUpdateDevice(it.elementAdded)
             if(it.wasRemoved())
                 controller.removeDevice(it.elementRemoved)
         })
 
         Watcher.advertiser.getConnectedDevices().addListener(SetChangeListener {
             if(it.wasAdded()) {
-                controller.getDevices().find { e -> it.elementAdded.physicalEquals(e.device) }
-                    ?.changeStatus(ConnectionStatus.CONNECTED)
+                controller.addOrUpdateDevice(it.elementAdded).changeStatus(ConnectionStatus.CONNECTED)
                 SocketConnectionManager.addDevice(it.elementAdded)
             }
             if(it.wasRemoved()) {
-                controller.getDevices().find { e -> it.elementRemoved.physicalEquals(e.device) }
-                    ?.changeStatus(ConnectionStatus.DISCONNECTED)
+                controller.addOrUpdateDevice(it.elementAdded).changeStatus(ConnectionStatus.DISCONNECTED)
                 SocketConnectionManager.removeDevice(it.elementRemoved)
             }
         })
@@ -108,7 +107,5 @@ class Main: Application() {
 
             return@setOnNewFileListener null
         }
-
-        controller.setOnFileSend(SocketConnectionManager.getFileSender(), stage)
     }
 }

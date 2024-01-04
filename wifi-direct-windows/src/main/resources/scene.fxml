@@ -66,7 +66,6 @@
                      <children>
                         <TextField fx:id="message" prefHeight="26.0" prefWidth="231.0" />
                         <Button fx:id="sendMessage" mnemonicParsing="false" text="Send" />
-                        <Button fx:id="sendFile" mnemonicParsing="false" prefHeight="26.0" prefWidth="54.0" text="File" />
                      </children>
                   </HBox>
                     <Label fx:id="log" alignment="TOP_LEFT" prefHeight="374.0" prefWidth="336.0" text="Log" />
