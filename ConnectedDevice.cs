@@ -14,6 +14,8 @@ namespace WiFiDirectApi
             DeviceInfo = deviceInfo;
         }
 
+        public string DisplayName => DeviceInfo.Name;
+
         public void Dispose()
         {
             // Close WiFiDirectDevice object

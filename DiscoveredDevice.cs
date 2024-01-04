@@ -13,7 +13,7 @@ namespace WiFiDirectApi
 
         public string DisplayName => DeviceInfo.Name;// + " - " + (DeviceInfo.Pairing.IsPaired ? "Paired" : "Unpaired");
 
-        public override string ToString() => DeviceInfo.Id + "🔹" + DeviceInfo.Name;
+        public override string ToString() => DeviceInfo.Id + ":" + DeviceInfo.Name;
         public void UpdateDeviceInfo(DeviceInformationUpdate update)
         {
             DeviceInfo.Update(update);

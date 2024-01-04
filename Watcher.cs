@@ -48,17 +48,21 @@ namespace WiFiDirectApi
 
         public bool StopWatching()
         {
+            if (deviceWatcher == null || ((int)deviceWatcher.Status) >= 3)
+            { 
+                return true;
+            }
+
             deviceWatcher.Added -= OnDeviceAdded;
             deviceWatcher.Removed -= OnDeviceRemoved;
             deviceWatcher.Updated -= OnDeviceUpdated;
             deviceWatcher.EnumerationCompleted -= OnEnumerationCompleted;
-            deviceWatcher.Stopped -= OnStopped;
 
             deviceWatcher.Stop();
 
             advertiser.StopAdvertisement();
 
-            Debug.WriteLine("Device watcher stopped." );
+            deviceWatcher.Stopped -= OnStopped;
 
             var status = deviceWatcher.Status;
             deviceWatcher = null;
@@ -105,7 +109,7 @@ namespace WiFiDirectApi
 
         private void OnStopped(DeviceWatcher deviceWatcher, object o)
         {
-            Debug.WriteLine("DeviceWatcher stopped" );
+            Debug.WriteLine($"DeviceWatcher stopped ${o}");
         }
         #endregion
 
@@ -113,12 +117,12 @@ namespace WiFiDirectApi
             return discoveredDevices.ToArray();
         }
 
-        public async void ConnectDevice(DiscoveredDevice discoveredDevice)
+        public async Task<bool> ConnectDevice(DiscoveredDevice discoveredDevice)
         {
             if (discoveredDevice == null)
             {
                 Debug.WriteLine("No device selected, please select one." );
-                return;
+                return false;
             }
 
             Debug.WriteLine($"Connecting to {discoveredDevice.DeviceInfo.Name}..." );
@@ -127,7 +131,7 @@ namespace WiFiDirectApi
             {
                 if (!await Advertiser.RequestPairDeviceAsync(discoveredDevice.DeviceInfo.Pairing))
                 {
-                    return;
+                    return false;
                 }
             }
 
@@ -140,11 +144,19 @@ namespace WiFiDirectApi
             catch (TaskCanceledException)
             {
                 Debug.WriteLine("FromIdAsync was canceled by user" );
-                return;
+                return false;
             }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Exception in FromIdAsync: {e}");
+                return false;
+            }
+
 
             wfdDevice.ConnectionStatusChanged += OnConnectionStatusChanged;
             advertiser.connectedDevices.Add(new ConnectedDevice(wfdDevice, discoveredDevice.DeviceInfo));
+
+            return true;
         }
 
         private void OnConnectionStatusChanged(WiFiDirectDevice wfdDevice, object arg)
